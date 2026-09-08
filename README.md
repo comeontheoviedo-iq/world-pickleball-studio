@@ -12,13 +12,13 @@ npm run generate:demo   # writes public/demo/kitchen-rally.wav (already committe
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3010](http://localhost:3010).
 
 - **Host:** Home → **Start a session**. Copy the invite link.
 - **Guest:** Open the invite in another tab or machine (`/join/<session-id>`), enter a name, join the set.
 - **Edit without recording:** Home → **Open demo edit** (or any episode → **Clean / edit**).
 
-`npm run dev` starts Next.js and the Socket.io signaling server on **port 3000** (same origin, path `/signal`). Default bind is `0.0.0.0` so preview URLs work; override with `PORT` / `HOSTNAME` if needed.
+`npm run dev` starts Next.js and the Socket.io signaling server on **port 3010** (same origin, path `/signal`). Default bind is `0.0.0.0` so preview URLs work; override with `PORT` / `HOSTNAME` if needed.
 
 No accounts, API keys, or `.env` files. Drafts live in **localStorage**; recorded takes live in **IndexedDB** in that browser.
 

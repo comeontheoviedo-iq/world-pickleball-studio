@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "tsx server.ts",
+    "dev": "PORT=3010 tsx server.ts",
     "build": "next build",
-    "start": "NODE_ENV=production tsx server.ts",
+    "start": "NODE_ENV=production PORT=3010 tsx server.ts",
     "generate:demo": "node scripts/generate-demo-audio.mjs"
   },
   "dependencies": {

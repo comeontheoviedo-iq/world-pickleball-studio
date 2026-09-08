@@ -29,7 +29,7 @@ Kit version `wpp-v1` in `brand.config.ts` plus files under `/public/brand`. Stud
 | Colours `#13016F` / `#FFF500` (+ WPM blue `#046BD2`) | Official show art |
 | `/public/brand/show-artwork.jpg` | Public podcast cover (Apple / Alitu / Spotify) |
 | `/public/brand/logo-wp.svg` | wp monogram derived from that cover |
-| `/public/brand/logo-wpm.png` | World Pickleball Magazine site wordmark |
+| `/public/brand/logo-wpm.png` | World Pickleball Magazine site wordmark (kit asset; not duplicated on the set lockup) |
 | `/public/brand/sets/*.svg` | Co-branded virtual sets (default: indigo court) |
 | `/public/brand/sponsors/*.svg` | Sponsor bar placeholders |
 | Lower-thirds | Chris Beaumont (host) / Gordon Watson (co-host) |

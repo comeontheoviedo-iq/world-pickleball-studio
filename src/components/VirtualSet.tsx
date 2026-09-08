@@ -98,7 +98,6 @@ export function VirtualSet({
               <p className="set-wordmark">{brand.logo.wordmark}</p>
               <p className="set-descriptor">{brand.logo.descriptor}</p>
             </div>
-            <img className="set-wpm" src={brand.magazine.src} alt={brand.magazine.alt} />
           </div>
           {live ? (
             <div className="live-pill">

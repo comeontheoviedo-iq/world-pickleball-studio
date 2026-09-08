@@ -285,15 +285,6 @@ h2 {
   object-fit: cover;
 }
 
-.set-logo img.set-wpm {
-  height: 36px;
-  width: auto;
-  max-width: 140px;
-  object-fit: contain;
-  border-radius: 0;
-  margin-left: 0.4rem;
-}
-
 .set-wordmark,
 .set-descriptor {
   margin: 0;

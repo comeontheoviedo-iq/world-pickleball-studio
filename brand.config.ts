@@ -2,8 +2,9 @@
  * Brand kit — World Pickleball Studio × The World Pickleball Podcast / WPM
  *
  * Assets sourced from public show art (Apple/Alitu/Spotify cover) and the
- * World Pickleball Magazine site wordmark. Swap files under /public/brand
- * and tokens here; do not scatter hex values in components.
+ * World Pickleball Magazine site wordmark (kit file; set lockup uses
+ * square show art + text only — no landscape WPM duplicate). Swap files
+ * under /public/brand and tokens here; do not scatter hex values in components.
  */
 export const brand = {
   placeholder: false,

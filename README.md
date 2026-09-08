@@ -21,11 +21,20 @@ Open [http://localhost:3010](http://localhost:3010).
 
 Mute/camera toggles are in the dock. **End session** leaves; if a take is in progress it still saves into edit. Guest uses **Leave session**.
 
-- **Edit without recording:** Home → **Open demo edit** (or any episode → **Clean / edit**).
+- **Edit without recording:** Home → **Open demo edit** (or any episode → **Clean / edit**). Then **SEO + distribute**.
 
 `npm run dev` starts Next.js and the Socket.io signaling server on **port 3010** (same origin, path `/signal`). Default bind is `0.0.0.0` so preview URLs work; override with `PORT` / `HOSTNAME` if needed.
 
-No accounts, API keys, or `.env` files. Drafts live in **localStorage**; recorded takes live in **IndexedDB** in that browser.
+No accounts, API keys, or `.env` files. Drafts live in **localStorage**; recorded takes live in **IndexedDB** in that browser. Optional `NEXT_PUBLIC_SEO_ENDPOINT` can POST for model-written copy; if unset, templates still run.
+
+## SEO + distribute
+
+From an episode (Home → Open demo edit, or after Stop recording):
+
+1. Open the **SEO + distribute** tab (or Clean / edit → **Next: SEO + distribute**).
+2. Paste optional notes or a transcript. **Generate title + show notes** — edit before you publish. Copy is saved on the draft.
+3. Tick the podcast checklist (copy RSS stub, Apple, Spotify, artwork). Links go to submit docs, not OAuth.
+4. **Render video for YouTube** downloads a branded 16:9 WebM (or a labeled PNG slate). Copy title/description/tags, then **Open YouTube Studio upload**.
 
 ## Brand kit (WPP + WPM)
 
@@ -47,7 +56,7 @@ Public listings: [Apple Podcasts](https://podcasts.apple.com/podcast/id180705979
 
 1. **Recording / set** — WebRTC (STUN only: `stun.l.google.com`). Shared 16:9 WPP set, logo, LIVE while recording. Host starts a session, copies an invite, records a mixed-audio take; Stop opens Clean / edit with that take.
 2. **Edit path** — Waveform trim, noise reduction, voice enhance, breath removal, placeholder intro/outro stings, WAV export. Works on a session take or on bundled demo audio.
-3. **Episode workspace** — Draft title, description, and artwork slots (show cover by default).
+3. **Episode workspace** — Draft title, description, artwork, then SEO + distribute (listing copy, directory checklist, YouTube handoff).
 4. **Brand kit** — `brand.config.ts` plus `/public/brand/*`.
 5. **Studio chrome** — host and guest each pick a co-branded set background (default: shared Indigo court); host can also set the guest look; editable name cards; host-driven live ticker; optional sponsor bar (1–3 logos, off by default).
 
@@ -70,22 +79,24 @@ On a live session the producer dock (host) and guest monitor both talk to the sa
 | Breath removal | Energy-based ducking of short mid-quiet bursts | Trained breath detector |
 | Camera missing | Animated branded stand-in frame | Still useful as a fallback |
 | Episode draft | Local to the browser | Studio backend + RSS item |
+| RSS / directories | In-app submit checklist + RSS URL stub | Live feed + OAuth |
+| YouTube | File + metadata handoff to Studio upload | Direct API publish |
 
 If `getUserMedia` is blocked (headless preview, denied permission), the set still renders with branded talent frames so the co-branded layout is visible.
 
 ## Out of scope (slice 1)
 
-- YouTube direct publish
+- YouTube API OAuth / in-app upload
 - Auto social clips / audiograms
 - Zoom ingest
-- RSS feed generation
+- Live RSS feed generation (checklist + URL stub only)
 - Accounts, billing, or multi-device draft sync
 - TURN servers (remote guests on strict NATs may fail; LAN / same-machine works)
 
 ## Next unlocks
 
 1. **Episode #1 guest + topic** — lock the first booking and show notes against a real guest.
-2. **RSS + YouTube handoff** — export a cleaned master, show notes, and a publish checklist (file + metadata), not in-app YouTube upload.
+2. **RSS + YouTube handoff** — done as a checklist + file/metadata pass in this slice; later: live feed and in-app upload.
 3. **Animated lower-thirds / real intro package** — motion templates and show stings.
 
 ## Architecture
@@ -95,7 +106,8 @@ brand.config.ts          ← only place for kit tokens
 server.ts                ← Next.js + Socket.io signaling (/signal)
 src/app                  ← Home, /session/[id], /join/[id], /episode/[id]
 src/components           ← Virtual set, producer dock, waveform, episode draft
-src/lib/audio-engine.ts  ← trim + DSP + WAV encode
+src/lib/seo.ts               ← title/show notes heuristics + optional endpoint
+src/lib/youtube-handoff.ts   ← 16:9 WebM/slate download for YouTube Studio
 src/lib/useStudioSession.ts ← WebRTC + signaling client
 public/brand             ← WPP/WPM logo, set, show artwork
 public/demo              ← synthetic demo WAV

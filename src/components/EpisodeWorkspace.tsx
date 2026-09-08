@@ -2,6 +2,7 @@
 
 import { brand } from "@brand";
 import { WaveformEditor } from "@/components/WaveformEditor";
+import { SeoDistributePanel } from "@/components/SeoDistributePanel";
 import {
   applyPipeline,
   decodeAudio,
@@ -11,7 +12,7 @@ import {
 import { createEpisode, getEpisode, loadAudioBlob, upsertEpisode, type Episode } from "@/lib/storage";
 import { useEffect, useState } from "react";
 
-type Props = { episodeId: string; initialTab?: "draft" | "edit" };
+type Props = { episodeId: string; initialTab?: "draft" | "edit" | "seo" };
 
 const defaultFlags: ProcessFlags = {
   noiseReduction: false,
@@ -21,7 +22,7 @@ const defaultFlags: ProcessFlags = {
 
 export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
   const [episode, setEpisode] = useState<Episode | null>(null);
-  const [tab, setTab] = useState<"draft" | "edit">(initialTab);
+  const [tab, setTab] = useState<"draft" | "edit" | "seo">(initialTab);
   const [buffer, setBuffer] = useState<AudioBuffer | null>(null);
   const [sourceLabel, setSourceLabel] = useState("Loading audio…");
   const [startSec, setStartSec] = useState(0);
@@ -165,6 +166,9 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
           <button className={tab === "edit" ? "tab on" : "tab"} onClick={() => setTab("edit")}>
             Clean / edit
           </button>
+          <button className={tab === "seo" ? "tab on" : "tab"} onClick={() => setTab("seo")}>
+            SEO + distribute
+          </button>
         </div>
       </header>
 
@@ -200,12 +204,12 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
               />
             </label>
             <p className="hint">
-              Status: Draft. RSS, YouTube handoff, and auto social are out of scope for slice 1. This
-              browser keeps the draft in local storage only.
+              Draft stays in this browser. Generate listing copy and the distribute checklist on the
+              SEO + distribute tab when the take is ready.
             </p>
           </div>
         </section>
-      ) : (
+      ) : tab === "edit" ? (
         <section className="edit-path">
           <p className="note">{sourceLabel}</p>
           <WaveformEditor
@@ -274,9 +278,19 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
             <button className="btn primary" onClick={() => void exportWav()} disabled={!buffer || busy}>
               {busy ? "Rendering…" : "Export cleaned WAV"}
             </button>
+            <button className="btn" type="button" onClick={() => setTab("seo")}>
+              Next: SEO + distribute
+            </button>
           </div>
           {note ? <p className="note">{note}</p> : null}
         </section>
+      ) : (
+        <SeoDistributePanel
+          episode={episode}
+          artworkSrc={art}
+          audio={buffer}
+          onSave={(patch) => saveEpisode({ ...episode, ...patch })}
+        />
       )}
     </div>
   );

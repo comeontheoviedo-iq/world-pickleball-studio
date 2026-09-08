@@ -3,6 +3,8 @@ const STORE = "audio";
 
 export type EpisodeStatus = "draft";
 
+export type DistributeChecks = Record<string, boolean>;
+
 export type Episode = {
   id: string;
   title: string;
@@ -14,15 +16,40 @@ export type Episode = {
   status: EpisodeStatus;
   audioKey: string | null;
   source: "recording" | "demo";
+  notes: string;
+  seoTitle: string;
+  seoDescription: string;
+  youtubeTitle: string;
+  youtubeDescription: string;
+  youtubeTags: string;
+  rssUrl: string;
+  distributeChecks: DistributeChecks;
 };
 
 const EPISODES_KEY = "wps.episodes";
+
+const EMPTY_DISTRIBUTE: DistributeChecks = {};
+
+function normalizeEpisode(raw: Episode): Episode {
+  return {
+    ...raw,
+    notes: raw.notes ?? "",
+    seoTitle: raw.seoTitle ?? "",
+    seoDescription: raw.seoDescription ?? "",
+    youtubeTitle: raw.youtubeTitle ?? "",
+    youtubeDescription: raw.youtubeDescription ?? "",
+    youtubeTags: raw.youtubeTags ?? "",
+    rssUrl: raw.rssUrl ?? "",
+    distributeChecks: raw.distributeChecks ?? EMPTY_DISTRIBUTE,
+  };
+}
 
 function readEpisodes(): Episode[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(EPISODES_KEY);
-    return raw ? (JSON.parse(raw) as Episode[]) : [];
+    const list = raw ? (JSON.parse(raw) as Episode[]) : [];
+    return list.map(normalizeEpisode);
   } catch {
     return [];
   }
@@ -42,13 +69,13 @@ export function getEpisode(id: string): Episode | undefined {
 
 export function upsertEpisode(episode: Episode) {
   const next = readEpisodes().filter((e) => e.id !== episode.id);
-  next.push(episode);
+  next.push(normalizeEpisode(episode));
   writeEpisodes(next);
 }
 
 export function createEpisode(partial: Partial<Episode> & Pick<Episode, "id" | "title">): Episode {
   const now = new Date().toISOString();
-  const episode: Episode = {
+  const episode = normalizeEpisode({
     description: "",
     artworkDataUrl: null,
     sessionId: null,
@@ -57,8 +84,16 @@ export function createEpisode(partial: Partial<Episode> & Pick<Episode, "id" | "
     status: "draft",
     audioKey: null,
     source: "demo",
+    notes: "",
+    seoTitle: "",
+    seoDescription: "",
+    youtubeTitle: "",
+    youtubeDescription: "",
+    youtubeTags: "",
+    rssUrl: "",
+    distributeChecks: {},
     ...partial,
-  };
+  } as Episode);
   upsertEpisode(episode);
   return episode;
 }

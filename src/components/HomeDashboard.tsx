@@ -15,6 +15,8 @@ function ensureDemoEpisode(): Episode {
     description: brand.demo.description,
     source: "demo",
     audioKey: null,
+    notes:
+      "Guest: Maya Chen\nTopic: Club-level pickleball going global\nTalked about WPM coverage, club nights, and why the world game still feels local.",
   });
 }
 
@@ -67,7 +69,7 @@ export function HomeDashboard() {
             intro/outro stings.
           </li>
           <li>
-            <strong>Park a draft.</strong> Title, description, and artwork slots — no publish yet.
+            <strong>SEO + distribute.</strong> Generate listing copy, tick Apple/Spotify/RSS, hand off a YouTube file + metadata.
           </li>
         </ol>
       </section>

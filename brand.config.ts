@@ -118,6 +118,13 @@ export const brand = {
     alitu: "https://worldpickleballpodcast.alitu.com/",
     magazine: "https://www.worldpickleballmagazine.com",
   },
+  distribute: {
+    rssStub: "https://worldpickleballpodcast.alitu.com/rss",
+    youtubeUpload: "https://studio.youtube.com/channel/upload",
+    appleSubmit: "https://podcasters.apple.com/support/826-submit-a-podcast",
+    spotifySubmit: "https://podcasters.spotify.com/",
+    googleSubmit: "https://support.google.com/youtube/answer/9472177",
+  },
 } as const;
 
 export type BrandConfig = typeof brand;

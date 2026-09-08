@@ -11,6 +11,10 @@ type Props = {
   chrome: StudioChrome;
   live: boolean;
   guestPresent: boolean;
+  localMuted: boolean;
+  localCameraOn: boolean;
+  remoteMuted: boolean;
+  remoteCameraOn: boolean;
 };
 
 function SetVideo({
@@ -18,11 +22,15 @@ function SetVideo({
   muted,
   mirror,
   emptyLabel,
+  cameraOff,
+  mutedBadge,
 }: {
   stream: MediaStream | null;
   muted: boolean;
   mirror?: boolean;
   emptyLabel: string;
+  cameraOff?: boolean;
+  mutedBadge?: boolean;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -39,6 +47,8 @@ function SetVideo({
           <span>{emptyLabel}</span>
         </div>
       )}
+      {cameraOff ? <div className="frame-flag">Camera off</div> : null}
+      {mutedBadge ? <div className="frame-muted">Muted</div> : null}
     </div>
   );
 }
@@ -79,10 +89,18 @@ export function VirtualSet({
   chrome,
   live,
   guestPresent,
+  localMuted,
+  localCameraOn,
+  remoteMuted,
+  remoteCameraOn,
 }: Props) {
   const hostStream = role === "host" ? localStream : remoteStream;
   const guestStream = role === "guest" ? localStream : remoteStream;
   const guestReady = role === "guest" ? Boolean(localStream) : guestPresent && Boolean(remoteStream);
+  const hostMuted = role === "host" ? localMuted : remoteMuted;
+  const guestMuted = role === "guest" ? localMuted : remoteMuted;
+  const hostCameraOn = role === "host" ? localCameraOn : remoteCameraOn;
+  const guestCameraOn = role === "guest" ? localCameraOn : remoteCameraOn;
   const mySet = setById(role === "host" ? chrome.hostSetId : chrome.guestSetId);
   const ticker = chrome.tickerOn ? parseTickerItems(chrome.tickerText) : [];
   const logos = chrome.sponsorUrls.filter(Boolean);
@@ -111,7 +129,14 @@ export function VirtualSet({
 
         <div className="set-talent">
           <article className="talent">
-            <SetVideo stream={hostStream} muted={role === "host"} mirror={role === "host"} emptyLabel="Host camera" />
+            <SetVideo
+              stream={hostStream}
+              muted={role === "host"}
+              mirror={role === "host"}
+              emptyLabel="Host camera"
+              cameraOff={Boolean(hostStream) && !hostCameraOn}
+              mutedBadge={hostMuted}
+            />
             <NameCard
               name={chrome.hostName || brand.lowerThirds.hostName}
               subtitle={chrome.hostTitle}
@@ -124,6 +149,8 @@ export function VirtualSet({
               muted={role === "guest"}
               mirror={role === "guest"}
               emptyLabel="Waiting for remote guest"
+              cameraOff={guestReady && !guestCameraOn}
+              mutedBadge={guestReady && guestMuted}
             />
             <NameCard
               name={chrome.guestName || brand.lowerThirds.guestName}

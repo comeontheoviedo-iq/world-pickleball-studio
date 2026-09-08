@@ -354,6 +354,7 @@ h2 {
 
 .set-frame {
   flex: 1;
+  position: relative;
   border-radius: 16px;
   overflow: hidden;
   border: 2px solid rgba(255, 245, 0, 0.55);
@@ -386,6 +387,29 @@ h2 {
 .set-empty-mark {
   font-size: 1.6rem;
   color: var(--lime, #FFF500);
+}
+
+.frame-flag,
+.frame-muted {
+  position: absolute;
+  left: 0.55rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(9, 0, 70, 0.82);
+}
+
+.frame-flag {
+  top: 0.55rem;
+  color: var(--mist, #C9C4E3);
+}
+
+.frame-muted {
+  bottom: 0.55rem;
+  color: var(--live, #FF4D4D);
+  border: 1px solid var(--live, #FF4D4D);
 }
 
 .lower-third,
@@ -490,6 +514,10 @@ h2 {
   color: var(--lime, #FFF500);
 }
 
+.signal-reconnecting {
+  color: var(--gold, #FFF500);
+}
+
 .signal-error {
   color: var(--live, #FF4D4D);
 }
@@ -497,6 +525,52 @@ h2 {
 .invite-row {
   display: flex;
   gap: 0.5rem;
+}
+
+.invite-block {
+  margin-top: 0.85rem;
+}
+
+.session-status {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.2rem 0 0.8rem;
+}
+
+.session-status p {
+  margin: 0;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.session-status strong {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lime, #FFF500);
+}
+
+.session-status span {
+  color: var(--cream, #F7F4EA);
+  font-size: 0.9rem;
+}
+
+.av-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.4rem 0 0.6rem;
+}
+
+.btn.av-on {
+  border-color: var(--lime, #FFF500);
+}
+
+.btn.inline {
+  display: inline-flex;
+  padding: 0.25rem 0.7rem;
+  margin-left: 0.35rem;
+  font-size: 0.8rem;
 }
 
 .invite-row input,

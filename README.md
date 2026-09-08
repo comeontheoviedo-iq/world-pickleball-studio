@@ -12,8 +12,15 @@ npm run dev
 
 Open [http://localhost:3010](http://localhost:3010).
 
-- **Host:** Home → **Start a session**. Copy the invite link.
-- **Guest:** Open the invite in another tab or machine (`/join/<session-id>`), enter a name, join the set.
+## Run a session
+
+1. **Host tab** — Home → **Start a session**. Copy the invite link (button flashes **Copied**).
+2. **Guest tab** — paste the invite (`http://localhost:3010/join/<id>`) in a second tab or window. Enter a name → **Join session**.
+3. Both should appear on the set with shared chrome. Host sees Guest **On set**; allow or deny camera/mic — a branded stand-in keeps the set alive (**Retry devices** if you change your mind).
+4. Host: **Start recording** (set goes LIVE) → **Stop recording**. The take saves and opens **Clean / edit**.
+
+Mute/camera toggles are in the dock. **End session** leaves; if a take is in progress it still saves into edit. Guest uses **Leave session**.
+
 - **Edit without recording:** Home → **Open demo edit** (or any episode → **Clean / edit**).
 
 `npm run dev` starts Next.js and the Socket.io signaling server on **port 3010** (same origin, path `/signal`). Default bind is `0.0.0.0` so preview URLs work; override with `PORT` / `HOSTNAME` if needed.
@@ -38,7 +45,7 @@ Public listings: [Apple Podcasts](https://podcasts.apple.com/podcast/id180705979
 
 ## What this slice proves
 
-1. **Recording / set** — WebRTC (STUN only: `stun.l.google.com`). Shared 16:9 WPP set, logo, LIVE badge, and lower-thirds. Host can start a session, invite a guest by link, record a mixed-audio take, then jump to an episode draft.
+1. **Recording / set** — WebRTC (STUN only: `stun.l.google.com`). Shared 16:9 WPP set, logo, LIVE while recording. Host starts a session, copies an invite, records a mixed-audio take; Stop opens Clean / edit with that take.
 2. **Edit path** — Waveform trim, noise reduction, voice enhance, breath removal, placeholder intro/outro stings, WAV export. Works on a session take or on bundled demo audio.
 3. **Episode workspace** — Draft title, description, and artwork slots (show cover by default).
 4. **Brand kit** — `brand.config.ts` plus `/public/brand/*`.

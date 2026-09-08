@@ -11,7 +11,7 @@ import {
 import { createEpisode, getEpisode, loadAudioBlob, upsertEpisode, type Episode } from "@/lib/storage";
 import { useEffect, useState } from "react";
 
-type Props = { episodeId: string };
+type Props = { episodeId: string; initialTab?: "draft" | "edit" };
 
 const defaultFlags: ProcessFlags = {
   noiseReduction: false,
@@ -19,9 +19,9 @@ const defaultFlags: ProcessFlags = {
   breathRemoval: false,
 };
 
-export function EpisodeWorkspace({ episodeId }: Props) {
+export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
   const [episode, setEpisode] = useState<Episode | null>(null);
-  const [tab, setTab] = useState<"draft" | "edit">("draft");
+  const [tab, setTab] = useState<"draft" | "edit">(initialTab);
   const [buffer, setBuffer] = useState<AudioBuffer | null>(null);
   const [sourceLabel, setSourceLabel] = useState("Loading audio…");
   const [startSec, setStartSec] = useState(0);
@@ -53,19 +53,38 @@ export function EpisodeWorkspace({ episodeId }: Props) {
       let blob: Blob | null = null;
       if (ep?.audioKey) {
         blob = await loadAudioBlob(ep.audioKey);
-        if (blob && !cancelled) setSourceLabel("Session take (browser recording)");
       }
-      if (!blob) {
+      if (blob) {
+        if (!cancelled) {
+          setSourceLabel(
+            ep?.source === "recording"
+              ? "Session take saved from the studio."
+              : "Loaded audio from this browser.",
+          );
+        }
+      } else {
         const res = await fetch(brand.demo.audioSrc);
         blob = await res.blob();
         if (!cancelled) setSourceLabel("Demo audio — synthetic kitchen rally");
       }
       if (!blob || cancelled) return;
-      const decoded = await decodeAudio(blob);
-      if (cancelled) return;
-      setBuffer(decoded);
-      setStartSec(0);
-      setEndSec(decoded.duration);
+      try {
+        const decoded = await decodeAudio(blob);
+        if (cancelled) return;
+        setBuffer(decoded);
+        setStartSec(0);
+        setEndSec(decoded.duration);
+      } catch {
+        if (cancelled) return;
+        const res = await fetch(brand.demo.audioSrc);
+        const fallback = await res.blob();
+        const decoded = await decodeAudio(fallback);
+        if (cancelled) return;
+        setSourceLabel("Could not decode the take — showing demo audio so the editor still opens.");
+        setBuffer(decoded);
+        setStartSec(0);
+        setEndSec(decoded.duration);
+      }
     }
     void load();
     return () => {

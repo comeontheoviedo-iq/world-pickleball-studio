@@ -28,6 +28,11 @@ type ChromePayload = {
   patch?: Record<string, unknown>;
 };
 
+type MediaPayload = {
+  sessionId: string;
+  state?: { muted?: boolean; cameraOn?: boolean };
+};
+
 const roomChrome = new Map<string, Record<string, unknown>>();
 
 app.prepare().then(() => {
@@ -87,6 +92,11 @@ app.prepare().then(() => {
       const next = { ...prev, ...patch };
       roomChrome.set(sessionId, next);
       io.to(sessionId).emit("chrome", next);
+    });
+
+    socket.on("media", ({ sessionId, state }: MediaPayload) => {
+      if (!sessionId || !state || typeof state !== "object") return;
+      socket.to(sessionId).emit("media", { from: socket.id, state });
     });
 
     socket.on("disconnect", () => {

@@ -4,6 +4,25 @@ export const ICE_SERVERS: RTCConfiguration = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
 
+export type StudioMediaResult = {
+  stream: MediaStream;
+  usingPlaceholder: boolean;
+  hasCamera: boolean;
+  hasMic: boolean;
+  cameraDenied: boolean;
+  micDenied: boolean;
+  note: string | null;
+};
+
+export type PeerMediaState = {
+  muted: boolean;
+  cameraOn: boolean;
+};
+
+function isDenied(err: unknown) {
+  return err instanceof DOMException && (err.name === "NotAllowedError" || err.name === "PermissionDeniedError");
+}
+
 export function createSilentAudioTrack(): MediaStreamTrack {
   const ctx = new AudioContext();
   const dest = ctx.createMediaStreamDestination();
@@ -80,21 +99,64 @@ export function createPlaceholderCameraStream(
   return stream;
 }
 
-export async function getStudioStream(label: string): Promise<{
-  stream: MediaStream;
-  usingPlaceholder: boolean;
-}> {
+const AV_CONSTRAINTS: MediaStreamConstraints = {
+  video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+  audio: {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  },
+};
+
+const AUDIO_CONSTRAINTS: MediaStreamConstraints = {
+  video: false,
+  audio: {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  },
+};
+
+export async function getStudioStream(label: string): Promise<StudioMediaResult> {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-      },
-    });
-    return { stream, usingPlaceholder: false };
-  } catch {
-    return { stream: createPlaceholderCameraStream(label), usingPlaceholder: true };
+    const stream = await navigator.mediaDevices.getUserMedia(AV_CONSTRAINTS);
+    return {
+      stream,
+      usingPlaceholder: false,
+      hasCamera: true,
+      hasMic: true,
+      cameraDenied: false,
+      micDenied: false,
+      note: null,
+    };
+  } catch (err) {
+    try {
+      const audio = await navigator.mediaDevices.getUserMedia(AUDIO_CONSTRAINTS);
+      const standIn = createPlaceholderCameraStream(label);
+      const video = standIn.getVideoTracks()[0];
+      if (video) audio.addTrack(video);
+      standIn.getAudioTracks().forEach((t) => t.stop());
+      return {
+        stream: audio,
+        usingPlaceholder: true,
+        hasCamera: false,
+        hasMic: true,
+        cameraDenied: isDenied(err),
+        micDenied: false,
+        note: isDenied(err)
+          ? "Camera blocked — branded stand-in is on, mic is live. Allow camera and hit Retry devices."
+          : "No camera — branded stand-in is on, mic is live.",
+      };
+    } catch (audioErr) {
+      return {
+        stream: createPlaceholderCameraStream(label),
+        usingPlaceholder: true,
+        hasCamera: false,
+        hasMic: false,
+        cameraDenied: isDenied(err) || isDenied(audioErr),
+        micDenied: isDenied(audioErr),
+        note: "Camera and mic unavailable — branded stand-in keeps the set running. Allow access and hit Retry devices anytime.",
+      };
+    }
   }
 }

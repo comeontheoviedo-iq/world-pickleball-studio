@@ -3,7 +3,14 @@
 import { EpisodeWorkspace } from "@/components/EpisodeWorkspace";
 import { use } from "react";
 
-export default function EpisodePage({ params }: { params: Promise<{ id: string }> }) {
+export default function EpisodePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { id } = use(params);
-  return <EpisodeWorkspace episodeId={id} />;
+  const query = use(searchParams);
+  return <EpisodeWorkspace episodeId={id} initialTab={query.tab === "edit" ? "edit" : "draft"} />;
 }

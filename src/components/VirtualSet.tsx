@@ -15,6 +15,7 @@ type Props = {
   localCameraOn: boolean;
   remoteMuted: boolean;
   remoteCameraOn: boolean;
+  usingPlaceholder?: boolean;
 };
 
 function SetVideo({
@@ -93,6 +94,7 @@ export function VirtualSet({
   localCameraOn,
   remoteMuted,
   remoteCameraOn,
+  usingPlaceholder = false,
 }: Props) {
   const hostStream = role === "host" ? localStream : remoteStream;
   const guestStream = role === "guest" ? localStream : remoteStream;
@@ -132,7 +134,7 @@ export function VirtualSet({
             <SetVideo
               stream={hostStream}
               muted={role === "host"}
-              mirror={role === "host"}
+              mirror={role === "host" && !usingPlaceholder}
               emptyLabel="Host camera"
               cameraOff={Boolean(hostStream) && !hostCameraOn}
               mutedBadge={hostMuted}
@@ -147,7 +149,7 @@ export function VirtualSet({
             <SetVideo
               stream={guestReady ? guestStream : null}
               muted={role === "guest"}
-              mirror={role === "guest"}
+              mirror={role === "guest" && !usingPlaceholder}
               emptyLabel="Waiting for remote guest"
               cameraOff={guestReady && !guestCameraOn}
               mutedBadge={guestReady && guestMuted}

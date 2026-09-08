@@ -249,7 +249,7 @@ function evenSpacing(duration: number, n: number): Run[] {
   const out: Run[] = [];
   for (let i = 0; i < count; i++) {
     const start = count === 1 ? 0 : (span * i) / (count - 1);
-    out.push({ start, end: start + clipLen, energy: 1 });
+    out.push({ start: roundTenths(start), end: roundTenths(start + clipLen), energy: 1 });
   }
   return out;
 }
@@ -323,8 +323,8 @@ export function detectClipMoments(input: DetectInput): ClipCandidate[] {
     if (overlaps) continue;
     merged.push({
       id: `e-${merged.length + 1}`,
-      startSec: run.start,
-      endSec: run.end,
+      startSec: roundTenths(run.start),
+      endSec: roundTenths(run.end),
       hook: "",
       caption: "",
       source,
@@ -333,8 +333,8 @@ export function detectClipMoments(input: DetectInput): ClipCandidate[] {
 
   const list = (merged.length >= MIN_CLIPS ? merged : runs.map((run, i) => ({
     id: `clip-${i + 1}`,
-    startSec: run.start,
-    endSec: run.end,
+    startSec: roundTenths(run.start),
+    endSec: roundTenths(run.end),
     hook: "",
     caption: "",
     source,

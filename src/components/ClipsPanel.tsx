@@ -191,11 +191,14 @@ export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
                     type="number"
                     min={0}
                     step={0.1}
-                    value={clip.startSec}
+                    value={Number(clip.startSec.toFixed(1))}
                     onChange={(e) => {
-                      const startSec = Number(e.target.value);
+                      const startSec = Math.round(Number(e.target.value) * 10) / 10;
                       const endSec = Math.max(clip.endSec, startSec + 1.5);
-                      patchClip(clip.id, { startSec, endSec });
+                      patchClip(clip.id, {
+                        startSec,
+                        endSec: Math.round(endSec * 10) / 10,
+                      });
                     }}
                   />
                 </label>
@@ -205,10 +208,12 @@ export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
                     type="number"
                     min={0}
                     step={0.1}
-                    value={clip.endSec}
+                    value={Number(clip.endSec.toFixed(1))}
                     onChange={(e) =>
                       patchClip(clip.id, {
-                        endSec: Math.max(Number(e.target.value), clip.startSec + 1.5),
+                        endSec: Math.round(
+                          Math.max(Number(e.target.value), clip.startSec + 1.5) * 10,
+                        ) / 10,
                       })
                     }
                   />

@@ -295,6 +295,7 @@ function LiveStudio({
         localCameraOn={localCameraOn}
         remoteMuted={session.peerMedia.muted}
         remoteCameraOn={session.peerMedia.cameraOn}
+        usingPlaceholder={session.usingPlaceholder}
       />
 
       <aside className="producer">

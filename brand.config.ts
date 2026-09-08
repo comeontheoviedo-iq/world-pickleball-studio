@@ -85,8 +85,10 @@ export const brand = {
   lowerThirds: {
     hostName: "Chris Beaumont",
     hostTitle: "The World Pickleball Podcast",
+    hostHandle: "",
     guestName: "Gordon Watson",
     guestTitle: "Co-host",
+    guestHandle: "",
     kicker: "WORLD PICKLEBALL PODCAST",
   },
   introOutro: {

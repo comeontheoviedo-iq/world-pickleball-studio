@@ -429,6 +429,11 @@ h2 {
   color: var(--mist, #C5D5C8);
 }
 
+.name-handle {
+  color: var(--lime, #FFF500) !important;
+  letter-spacing: 0.04em;
+}
+
 .lt-kicker {
   color: var(--gold, #FFF500) !important;
   letter-spacing: 0.16em;
@@ -669,35 +674,51 @@ label {
   border-top: 0;
   border-radius: 0 0 14px 14px;
   margin-top: -2px;
-  height: 2rem;
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.8rem;
 }
 
-.set-ticker-track {
-  display: inline-flex;
-  align-items: center;
-  gap: 2.2rem;
-  padding: 0.4rem 0;
-  white-space: nowrap;
-  animation: ticker-scroll 28s linear infinite;
+.set-ticker-item {
   color: var(--lime, #FFF500);
   font-size: 0.78rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  text-align: center;
 }
 
-.set-ticker-track span::before {
+.set-ticker-item::before {
   content: "●";
   margin-right: 0.7rem;
   color: var(--wpm, #046BD2);
 }
 
-@keyframes ticker-scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
+.set-bumper {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: rgba(9, 0, 70, 0.9);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 2rem 2.4rem;
+  gap: 0.4rem;
+}
+
+.set-bumper p {
+  margin: 0;
+  max-width: 36rem;
+  font-size: 1.15rem;
+}
+
+.picker-label {
+  margin: 0.75rem 0 0.35rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mist, #C9C4E3);
 }
 
 .set-sponsors {

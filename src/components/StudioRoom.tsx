@@ -293,7 +293,7 @@ function LiveStudio({
         ) : (
           <>
             <p className="hint">
-              Shared chrome (ticker, sponsors, name cards) follows the host. Pick your set background below.
+              Shared chrome (ticker, sponsors, name cards) follows the host. Pick your set below; the host can also set it.
             </p>
             <StudioChromePanel role={role} chrome={chrome} onPatch={patchChrome} />
           </>

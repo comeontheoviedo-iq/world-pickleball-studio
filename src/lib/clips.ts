@@ -131,6 +131,12 @@ function sanitizeHook(s: string): string {
     .trim();
 }
 
+function clipHook(s: string, max = 72): string {
+  const t = s.replace(/\s+/g, " ").trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, max - 1).trim()}…`;
+}
+
 function keywordHooks(notes: string, title: string, description: string): string[] {
   const topic = sanitizeHook(notes.match(/topic\s*[:—-]\s*(.+)/i)?.[1] || "");
   const extras = firstLines(notes, 8)
@@ -138,8 +144,10 @@ function keywordHooks(notes: string, title: string, description: string): string
     .map(sanitizeHook)
     .filter((l) => l.length > 8 && l.length < 90);
   const fromTitle = sanitizeHook(title);
-  const fromDesc = sanitizeHook(firstLines(description, 1)[0] || "");
-  const hooks = [topic, ...extras, fromTitle, fromDesc].filter((s) => s.length > 4);
+  const fromDesc = clipHook(sanitizeHook(firstLines(description, 1)[0] || ""), 72);
+  const hooks = [topic, ...extras, fromTitle, fromDesc]
+    .map((s) => clipHook(s))
+    .filter((s) => s.length > 4);
   return [...new Set(hooks)].slice(0, 8);
 }
 
@@ -335,7 +343,7 @@ export function detectClipMoments(input: DetectInput): ClipCandidate[] {
     list.map((c, i) => ({
       ...c,
       id: `clip-${i + 1}`,
-      hook: c.hook || hooks[i] || "",
+      hook: clipHook(c.hook || hooks[i] || ""),
       source: c.hook && c.source === "chapter" ? "chapter" : c.hook && hooks.includes(c.hook) ? "keyword" : c.source,
     })),
     input.title,

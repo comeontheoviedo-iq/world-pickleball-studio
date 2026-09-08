@@ -1,8 +1,6 @@
 # World Pickleball Studio
 
-Alitu-class branded podcast studio — **slice 1 MVP**. Host and a remote guest share one placeholder co-branded virtual set in the browser; after the take (or with demo audio) there is a clean/edit path and a draft episode workspace.
-
-Brand assets are **not ready**. Everything visual is driven by a single placeholder kit so the real package can swap later.
+Alitu-class branded podcast studio — **slice 1 MVP**. Host and a remote guest share one co-branded virtual set for **The World Pickleball Podcast**; after the take (or with demo audio) there is a clean/edit path and a draft episode workspace.
 
 ## Run locally
 
@@ -22,33 +20,45 @@ Open [http://localhost:3010](http://localhost:3010).
 
 No accounts, API keys, or `.env` files. Drafts live in **localStorage**; recorded takes live in **IndexedDB** in that browser.
 
+## Brand kit (WPP + WPM)
+
+Kit version `wpp-v1` in `brand.config.ts` plus files under `/public/brand`. Studio product name stays **World Pickleball Studio**; the on-set show is **The World Pickleball Podcast**.
+
+| Token / file | Source |
+| --- | --- |
+| Colours `#13016F` / `#FFF500` (+ WPM blue `#046BD2`) | Official show art |
+| `/public/brand/show-artwork.jpg` | Public podcast cover (Apple / Alitu / Spotify) |
+| `/public/brand/logo-wp.svg` | wp monogram derived from that cover |
+| `/public/brand/logo-wpm.png` | World Pickleball Magazine site wordmark |
+| `/public/brand/set-background.svg` | Indigo court cyclorama with yellow accents |
+| Lower-thirds | Chris Beaumont (host) / Gordon Watson (co-host) |
+
+Public listings: [Apple Podcasts](https://podcasts.apple.com/podcast/id1807059798), [Spotify](https://open.spotify.com/show/2YxXH3gi7xrMtveIKOxHa7), [Alitu](https://worldpickleballpodcast.alitu.com/), [World Pickleball Magazine](https://www.worldpickleballmagazine.com).
+
 ## What this slice proves
 
-1. **Recording / set** — WebRTC (STUN only: `stun.l.google.com`). Shared 16:9 set with placeholder background, logo, LIVE badge, and lower-thirds. Host can start a session, invite a guest by link, record a mixed-audio take, then jump to an episode draft.
+1. **Recording / set** — WebRTC (STUN only: `stun.l.google.com`). Shared 16:9 WPP set, logo, LIVE badge, and lower-thirds. Host can start a session, invite a guest by link, record a mixed-audio take, then jump to an episode draft.
 2. **Edit path** — Waveform trim, noise reduction, voice enhance, breath removal, placeholder intro/outro stings, WAV export. Works on a session take or on bundled demo audio.
-3. **Episode workspace** — Draft title, description, and artwork slots.
-4. **Placeholder brand** — `brand.config.ts` plus `/public/brand/*`.
+3. **Episode workspace** — Draft title, description, and artwork slots (show cover by default).
+4. **Brand kit** — `brand.config.ts` plus `/public/brand/*`.
 
-## Placeholder vs real
+## Still stubbed vs later product
 
-| Piece | Slice 1 | When the real kit / product lands |
+| Piece | Slice 1 | Later |
 | --- | --- | --- |
-| Logo, colours, type, set background, artwork | Tokens + SVG stubs in `brand.config.ts` and `/public/brand` | Drop in files and change the config — do not scatter hex values in components |
-| Lower-thirds | Editable stub names/titles, synced over signaling | Real templates, fonts, animation |
 | Intro / outro | Generated tone beds | Real show package audio |
 | Noise reduction | High-pass + noise gate (real DSP, not ML) | Model-based denoise |
 | Voice enhance | Presence EQ + compressor | Broadcast chain / learned enhancer |
 | Breath removal | Energy-based ducking of short mid-quiet bursts | Trained breath detector |
-| Camera missing | Animated branded placeholder frame | Still useful as a fallback |
+| Camera missing | Animated branded stand-in frame | Still useful as a fallback |
 | Episode draft | Local to the browser | Studio backend + RSS item |
 
-If `getUserMedia` is blocked (headless preview, denied permission), the set still renders with placeholder talent frames so the co-branded layout is visible.
+If `getUserMedia` is blocked (headless preview, denied permission), the set still renders with branded talent frames so the co-branded layout is visible.
 
 ## Out of scope (slice 1)
 
 - YouTube direct publish
 - Auto social clips / audiograms
-- Real brand kit
 - Zoom ingest
 - RSS feed generation
 - Accounts, billing, or multi-device draft sync
@@ -56,9 +66,9 @@ If `getUserMedia` is blocked (headless preview, denied permission), the set stil
 
 ## Next unlocks
 
-1. **Real brand kit** — swap `brand.config.ts` and `/public/brand` (logo, colour tokens, set still, lower-third templates, artwork).
-2. **Episode #1 guest + topic** — replace the `[Guest]` title/description placeholders and lock the first booking.
-3. **RSS + YouTube handoff** — export a cleaned master, show notes, and a publish checklist (file + metadata), not in-app YouTube upload.
+1. **Episode #1 guest + topic** — lock the first booking and show notes against a real guest.
+2. **RSS + YouTube handoff** — export a cleaned master, show notes, and a publish checklist (file + metadata), not in-app YouTube upload.
+3. **Animated lower-thirds / real intro package** — motion templates and show stings.
 
 ## Architecture
 
@@ -69,7 +79,7 @@ src/app                  ← Home, /session/[id], /join/[id], /episode/[id]
 src/components           ← Virtual set, producer dock, waveform, episode draft
 src/lib/audio-engine.ts  ← trim + DSP + WAV encode
 src/lib/useStudioSession.ts ← WebRTC + signaling client
-public/brand             ← placeholder logo, set, artwork
+public/brand             ← WPP/WPM logo, set, show artwork
 public/demo              ← synthetic demo WAV
 ```
 

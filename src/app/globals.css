@@ -10,8 +10,8 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: var(--ink, #07140F);
-  color: var(--cream, #F4EFE3);
+  background: var(--ink, #090046);
+  color: var(--cream, #F7F4EA);
   font-family: var(--font-ui), Outfit, system-ui, sans-serif;
 }
 
@@ -29,8 +29,8 @@ textarea {
 .app-shell {
   min-height: 100vh;
   background:
-    radial-gradient(1200px 500px at 50% -10%, rgba(212, 255, 58, 0.08), transparent 55%),
-    var(--ink, #07140F);
+    radial-gradient(1200px 500px at 50% -10%, rgba(255, 245, 0, 0.08), transparent 55%),
+    var(--ink, #090046);
 }
 
 .topbar {
@@ -38,7 +38,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   padding: 0.85rem 1.4rem;
-  border-bottom: 1px solid rgba(212, 255, 58, 0.14);
+  border-bottom: 1px solid rgba(255, 245, 0, 0.14);
 }
 
 .topbar-brand {
@@ -52,11 +52,14 @@ textarea {
 
 .topbar-brand img {
   border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
 }
 
 .topbar-kit {
   font-size: 0.72rem;
-  color: var(--gold, #E4C15A);
+  color: var(--gold, #FFF500);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -81,6 +84,9 @@ textarea {
 
 .brand-lockup img {
   border-radius: 14px;
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
 }
 
 .eyebrow {
@@ -88,12 +94,12 @@ textarea {
   font-size: 0.72rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--lime, #D4FF3A);
+  color: var(--lime, #FFF500);
 }
 
 h1,
 h2 {
-  font-family: var(--font-display), "Bebas Neue", sans-serif;
+  font-family: var(--font-display), Anton, sans-serif;
   font-weight: 400;
   letter-spacing: 0.04em;
   margin: 0.15rem 0 0.4rem;
@@ -129,8 +135,8 @@ h2 {
 .btn {
   appearance: none;
   border: 1px solid rgba(244, 239, 227, 0.18);
-  background: var(--panel, #10261B);
-  color: var(--cream, #F4EFE3);
+  background: var(--panel, #12085A);
+  color: var(--cream, #F7F4EA);
   padding: 0.7rem 1rem;
   border-radius: 999px;
   cursor: pointer;
@@ -146,8 +152,8 @@ h2 {
 }
 
 .btn.primary {
-  background: var(--lime, #D4FF3A);
-  color: var(--ink, #07140F);
+  background: var(--lime, #FFF500);
+  color: var(--ink, #090046);
   border-color: transparent;
   font-weight: 650;
 }
@@ -159,10 +165,10 @@ h2 {
 }
 
 .pipeline {
-  border: 1px solid rgba(212, 255, 58, 0.16);
+  border: 1px solid rgba(255, 245, 0, 0.16);
   border-radius: 20px;
   padding: 1.4rem 1.6rem;
-  background: rgba(16, 38, 27, 0.7);
+  background: rgba(19, 1, 111, 0.7);
   margin-bottom: 2.2rem;
 }
 
@@ -191,13 +197,13 @@ h2 {
   align-items: center;
   padding: 0.95rem 1.1rem;
   border-radius: 16px;
-  background: var(--panel, #10261B);
+  background: var(--panel, #12085A);
   border: 1px solid rgba(244, 239, 227, 0.08);
 }
 
 .episode-list em {
   font-style: normal;
-  color: var(--gold, #E4C15A);
+  color: var(--gold, #FFF500);
   font-size: 0.8rem;
 }
 
@@ -205,8 +211,8 @@ h2 {
   font-size: 0.68rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  border: 1px solid var(--lime, #D4FF3A);
-  color: var(--lime, #D4FF3A);
+  border: 1px solid var(--lime, #FFF500);
+  color: var(--lime, #FFF500);
   padding: 0.2rem 0.45rem;
   border-radius: 999px;
 }
@@ -230,7 +236,7 @@ h2 {
   overflow: hidden;
   border-radius: 18px;
   border: 1px solid rgba(228, 193, 90, 0.28);
-  background: var(--court-deep, #0B2E1C);
+  background: var(--court-deep, #0A0147);
 }
 
 .set-bg {
@@ -262,7 +268,7 @@ h2 {
   display: flex;
   gap: 0.7rem;
   align-items: center;
-  background: rgba(7, 20, 15, 0.55);
+  background: rgba(19, 1, 111, 0.55);
   padding: 0.4rem 0.7rem 0.4rem 0.4rem;
   border-radius: 14px;
   backdrop-filter: blur(8px);
@@ -270,6 +276,18 @@ h2 {
 
 .set-logo img {
   border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+}
+
+.set-logo img.set-wpm {
+  height: 36px;
+  width: auto;
+  max-width: 140px;
+  object-fit: contain;
+  border-radius: 0;
+  margin-left: 0.4rem;
 }
 
 .set-wordmark,
@@ -279,7 +297,7 @@ h2 {
 }
 
 .set-wordmark {
-  font-family: var(--font-display), "Bebas Neue", sans-serif;
+  font-family: var(--font-display), Anton, sans-serif;
   letter-spacing: 0.12em;
   font-size: 1.15rem;
 }
@@ -287,7 +305,7 @@ h2 {
 .set-descriptor {
   font-size: 0.65rem;
   letter-spacing: 0.28em;
-  color: var(--lime, #D4FF3A);
+  color: var(--lime, #FFF500);
 }
 
 .live-pill,
@@ -322,7 +340,7 @@ h2 {
 }
 
 .standby-pill {
-  background: rgba(7, 20, 15, 0.7);
+  background: rgba(9, 0, 70, 0.7);
   border: 1px solid rgba(244, 239, 227, 0.25);
 }
 
@@ -343,8 +361,8 @@ h2 {
   flex: 1;
   border-radius: 16px;
   overflow: hidden;
-  border: 2px solid rgba(212, 255, 58, 0.55);
-  background: rgba(7, 20, 15, 0.5);
+  border: 2px solid rgba(255, 245, 0, 0.55);
+  background: rgba(9, 0, 70, 0.5);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
 }
 
@@ -372,15 +390,15 @@ h2 {
 
 .set-empty-mark {
   font-size: 1.6rem;
-  color: var(--lime, #D4FF3A);
+  color: var(--lime, #FFF500);
 }
 
 .lower-third {
   margin-top: -0.85rem;
   margin-left: 0.7rem;
   margin-right: 0.7rem;
-  background: linear-gradient(90deg, #14532D, #0B2E1C 70%);
-  border-left: 4px solid var(--lime, #D4FF3A);
+  background: linear-gradient(90deg, var(--court, #13016F), var(--court-deep, #0A0147) 70%);
+  border-left: 4px solid var(--lime, #FFF500);
   padding: 0.45rem 0.7rem 0.55rem;
   position: relative;
   z-index: 2;
@@ -392,7 +410,7 @@ h2 {
 }
 
 .lower-third h3 {
-  font-family: var(--font-display), "Bebas Neue", sans-serif;
+  font-family: var(--font-display), Anton, sans-serif;
   font-size: 1.45rem;
   letter-spacing: 0.06em;
 }
@@ -403,7 +421,7 @@ h2 {
 }
 
 .lt-kicker {
-  color: var(--gold, #E4C15A) !important;
+  color: var(--gold, #FFF500) !important;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   font-size: 0.62rem !important;
@@ -414,7 +432,7 @@ h2 {
   left: 0;
   right: 0;
   text-align: center;
-  font-family: var(--font-display), "Bebas Neue", sans-serif;
+  font-family: var(--font-display), Anton, sans-serif;
   letter-spacing: 0.28em;
   font-size: 1.1rem;
   margin: 0;
@@ -427,7 +445,7 @@ h2 {
   font-size: 0.62rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--gold, #E4C15A);
+  color: var(--gold, #FFF500);
 }
 
 .talent-waiting .set-frame {
@@ -436,7 +454,7 @@ h2 {
 }
 
 .producer {
-  background: var(--panel, #10261B);
+  background: var(--panel, #12085A);
   border-radius: 18px;
   padding: 1rem 1.1rem 1.2rem;
   border: 1px solid rgba(244, 239, 227, 0.08);
@@ -458,11 +476,11 @@ h2 {
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--gold, #E4C15A);
+  color: var(--gold, #FFF500);
 }
 
 .signal-ready {
-  color: var(--lime, #D4FF3A);
+  color: var(--lime, #FFF500);
 }
 
 .signal-error {
@@ -478,9 +496,9 @@ h2 {
 label input,
 label textarea {
   width: 100%;
-  background: var(--court-deep, #0B2E1C);
+  background: var(--court-deep, #0A0147);
   border: 1px solid rgba(244, 239, 227, 0.12);
-  color: var(--cream, #F4EFE3);
+  color: var(--cream, #F7F4EA);
   border-radius: 10px;
   padding: 0.55rem 0.7rem;
 }
@@ -507,7 +525,7 @@ label {
 }
 
 .note {
-  background: rgba(212, 255, 58, 0.08);
+  background: rgba(255, 245, 0, 0.08);
   border-radius: 10px;
   padding: 0.55rem 0.7rem;
 }
@@ -525,10 +543,10 @@ label {
 
 .gate-card {
   width: min(440px, 100%);
-  background: var(--panel, #10261B);
+  background: var(--panel, #12085A);
   padding: 1.6rem;
   border-radius: 20px;
-  border: 1px solid rgba(212, 255, 58, 0.16);
+  border: 1px solid rgba(255, 245, 0, 0.16);
 }
 
 .workspace-head h1 {
@@ -544,15 +562,15 @@ label {
 .tab {
   background: transparent;
   border: 1px solid rgba(244, 239, 227, 0.16);
-  color: var(--cream, #F4EFE3);
+  color: var(--cream, #F7F4EA);
   padding: 0.45rem 0.9rem;
   border-radius: 999px;
   cursor: pointer;
 }
 
 .tab.on {
-  background: var(--lime, #D4FF3A);
-  color: var(--ink, #07140F);
+  background: var(--lime, #FFF500);
+  color: var(--ink, #090046);
   border-color: transparent;
 }
 
@@ -573,7 +591,7 @@ label {
 .artwork-slot img {
   width: 100%;
   border-radius: 16px;
-  border: 1px solid rgba(212, 255, 58, 0.2);
+  border: 1px solid rgba(255, 245, 0, 0.2);
   display: block;
   margin-bottom: 0.7rem;
 }
@@ -604,7 +622,7 @@ label {
 
 .fx legend {
   padding: 0 0.4rem;
-  color: var(--lime, #D4FF3A);
+  color: var(--lime, #FFF500);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-size: 0.72rem;
@@ -624,5 +642,5 @@ label {
 }
 
 .check span {
-  color: var(--cream, #F4EFE3);
+  color: var(--cream, #F7F4EA);
 }

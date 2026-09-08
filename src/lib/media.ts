@@ -1,3 +1,5 @@
+import { brand } from "@brand";
+
 export const ICE_SERVERS: RTCConfiguration = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
@@ -18,7 +20,7 @@ export function createSilentAudioTrack(): MediaStreamTrack {
 /** Animated stand-in when the camera is blocked or missing (common in remote previews). */
 export function createPlaceholderCameraStream(
   label: string,
-  accent = "#D4FF3A",
+  accent = brand.colors.lime,
 ): MediaStream {
   const canvas = document.createElement("canvas");
   canvas.width = 960;
@@ -37,22 +39,22 @@ export function createPlaceholderCameraStream(
   const draw = () => {
     frame += 1;
     const t = frame / 40;
-    ctx.fillStyle = "#0B2E1C";
+    ctx.fillStyle = brand.colors.courtDeep;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const g = ctx.createRadialGradient(480, 200, 40, 480, 240, 420);
-    g.addColorStop(0, "rgba(212,255,58,0.22)");
-    g.addColorStop(1, "rgba(11,46,28,0)");
+    g.addColorStop(0, "rgba(255,245,0,0.22)");
+    g.addColorStop(1, "rgba(19,1,111,0)");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.strokeStyle = "rgba(212,255,58,0.2)";
+    ctx.strokeStyle = "rgba(255,245,0,0.2)";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(480, 250 + Math.sin(t) * 8, 90, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.fillStyle = "#14532D";
+    ctx.fillStyle = brand.colors.court;
     ctx.beginPath();
     ctx.arc(480, 210 + Math.sin(t) * 6, 54, 0, Math.PI * 2);
     ctx.fill();
@@ -60,9 +62,9 @@ export function createPlaceholderCameraStream(
     ctx.font = "700 36px Outfit, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(initials || "WPS", 480, 212 + Math.sin(t) * 6);
+    ctx.fillText(initials || "WPP", 480, 212 + Math.sin(t) * 6);
 
-    ctx.fillStyle = "#F4EFE3";
+    ctx.fillStyle = brand.colors.cream;
     ctx.font = "500 22px Outfit, sans-serif";
     ctx.fillText(label, 480, 340);
     ctx.fillStyle = "rgba(244,239,227,0.55)";

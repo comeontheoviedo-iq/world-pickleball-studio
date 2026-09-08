@@ -59,7 +59,7 @@ export function HomeDashboard() {
         <h2>Slice 1 pipeline</h2>
         <ol>
           <li>
-            <strong>Record on the set.</strong> Browser WebRTC, invite link, shared placeholder cyclorama +
+            <strong>Record on the set.</strong> Browser WebRTC, invite link, shared World Pickleball Podcast set +
             logo + lower-thirds.
           </li>
           <li>

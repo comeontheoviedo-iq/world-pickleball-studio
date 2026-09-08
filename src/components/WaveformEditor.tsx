@@ -1,5 +1,6 @@
 "use client";
 
+import { brand } from "@brand";
 import { useEffect, useRef, useState } from "react";
 
 type Props = {
@@ -34,15 +35,15 @@ export function WaveformEditor({ buffer, startSec, endSec, onChangeRange }: Prop
 
     const data = buffer.getChannelData(0);
     const step = Math.ceil(data.length / cssW);
-    ctx.fillStyle = "#0B2E1C";
+    ctx.fillStyle = brand.colors.courtDeep;
     ctx.fillRect(0, 0, cssW, cssH);
 
     const trimX0 = (startSec / duration) * cssW;
     const trimX1 = (endSec / duration) * cssW;
-    ctx.fillStyle = "rgba(212,255,58,0.08)";
+    ctx.fillStyle = "rgba(255,245,0,0.08)";
     ctx.fillRect(trimX0, 0, trimX1 - trimX0, cssH);
 
-    ctx.strokeStyle = "#D4FF3A";
+    ctx.strokeStyle = brand.colors.lime;
     ctx.globalAlpha = 0.85;
     ctx.beginPath();
     for (let x = 0; x < cssW; x++) {
@@ -62,13 +63,13 @@ export function WaveformEditor({ buffer, startSec, endSec, onChangeRange }: Prop
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    ctx.fillStyle = "#E4C15A";
+    ctx.fillStyle = brand.colors.gold;
     ctx.fillRect(trimX0 - 2, 0, 4, cssH);
     ctx.fillRect(trimX1 - 2, 0, 4, cssH);
 
     if (playing) {
       const x = (cursor / duration) * cssW;
-      ctx.fillStyle = "#F4EFE3";
+      ctx.fillStyle = brand.colors.cream;
       ctx.fillRect(x, 0, 1.5, cssH);
     }
   }, [buffer, startSec, endSec, duration, playing, cursor]);

@@ -162,7 +162,7 @@ export function EpisodeWorkspace({ episodeId }: Props) {
                 onChange={(e) => void onArtwork(e.target.files?.[0])}
               />
             </label>
-            <p className="hint">Placeholder square until the real cover kit lands.</p>
+            <p className="hint">Show artwork from The World Pickleball Podcast. Replace if this episode needs a custom cover.</p>
           </div>
           <div className="draft-fields">
             <label>

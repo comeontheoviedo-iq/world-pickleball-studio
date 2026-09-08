@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="The World Pickleball Podcast wp mark">
+  <rect width="64" height="64" rx="16" fill="#13016F"/>
+  <g fill="none" stroke="#FFF500" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13 46 V30 Q13 18 22 18 Q31 18 31 30 V46"/>
+    <path d="M31 46 V30 Q31 18 40 18 Q49 18 49 30 V10"/>
+    <path d="M49 10 Q63 10 63 22 Q63 34 49 34"/>
+  </g>
+</svg>

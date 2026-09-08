@@ -1,10 +1,10 @@
 import { brand } from "@brand";
-import { Bebas_Neue, Outfit } from "next/font/google";
+import { Anton, Outfit } from "next/font/google";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import "./globals.css";
 
-const display = Bebas_Neue({
+const display = Anton({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-display",
@@ -33,6 +33,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     "--live": brand.colors.live,
     "--panel": brand.colors.panel,
     "--panel-lift": brand.colors.panelLift,
+    "--wpm": brand.colors.wpm,
   } as CSSProperties;
 
   return (

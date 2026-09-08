@@ -34,7 +34,7 @@ export function StudioRoom({ sessionId, role }: Props) {
           <p className="eyebrow">Guest invite</p>
           <h1>Step onto the set</h1>
           <p className="lede">
-            You will appear next to the host on the placeholder World Pickleball Studio cyclorama.
+            You will appear next to Chris Beaumont on The World Pickleball Podcast set.
             Camera is used when available; otherwise a branded stand-in fills your frame.
           </p>
           <label>

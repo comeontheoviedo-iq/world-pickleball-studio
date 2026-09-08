@@ -77,6 +77,7 @@ export function VirtualSet({
               <p className="set-wordmark">{brand.logo.wordmark}</p>
               <p className="set-descriptor">{brand.logo.descriptor}</p>
             </div>
+            <img className="set-wpm" src={brand.magazine.src} alt={brand.magazine.alt} />
           </div>
           {live ? (
             <div className="live-pill">
@@ -113,7 +114,9 @@ export function VirtualSet({
         </div>
 
         <p className="set-show-title">{brand.showName}</p>
-        {brand.placeholder ? <p className="set-placeholder-flag">Placeholder brand kit</p> : null}
+        {brand.placeholder ? <p className="set-placeholder-flag">Placeholder brand kit</p> : (
+          <p className="set-placeholder-flag">WPP × WPM</p>
+        )}
       </div>
     </section>
   );

@@ -1,69 +1,80 @@
 /**
- * PLACEHOLDER brand kit — World Pickleball Studio
+ * Brand kit — World Pickleball Studio × The World Pickleball Podcast / WPM
  *
- * Real logos, colours, type, lower-thirds, and set art are not ready.
- * Swap values here (and files under /public/brand) when the kit lands.
- * UI should import from this file instead of hard-coding brand tokens.
+ * Assets sourced from public show art (Apple/Alitu/Spotify cover) and the
+ * World Pickleball Magazine site wordmark. Swap files under /public/brand
+ * and tokens here; do not scatter hex values in components.
  */
 export const brand = {
-  placeholder: true,
-  kitVersion: "placeholder-v1",
+  placeholder: false,
+  kitVersion: "wpp-v1",
   name: "World Pickleball Studio",
-  shortName: "WPS",
-  tagline: "Co-branded conversations from the kitchen line.",
-  showName: "World Pickleball Studio",
+  shortName: "WPP",
+  tagline: "Chris Beaumont and Gordon Watson on the world game of pickleball.",
+  showName: "The World Pickleball Podcast",
   colors: {
-    ink: "#07140F",
-    court: "#14532D",
-    courtDeep: "#0B2E1C",
-    lime: "#D4FF3A",
-    gold: "#E4C15A",
-    cream: "#F4EFE3",
-    mist: "#C5D5C8",
+    ink: "#090046",
+    court: "#13016F",
+    courtDeep: "#0A0147",
+    lime: "#FFF500",
+    gold: "#FFF500",
+    cream: "#F7F4EA",
+    mist: "#C9C4E3",
     live: "#FF4D4D",
-    panel: "#10261B",
-    panelLift: "#173524",
+    panel: "#12085A",
+    panelLift: "#1A0C72",
+    wpm: "#046BD2",
   },
   fonts: {
-    display: "Bebas Neue",
+    display: "Anton",
     ui: "Outfit",
   },
   logo: {
-    src: "/brand/logo-placeholder.svg",
-    alt: "World Pickleball Studio placeholder logo",
-    wordmark: "WORLD PICKLEBALL",
-    descriptor: "STUDIO",
+    src: "/brand/show-artwork.jpg",
+    alt: "The World Pickleball Podcast show artwork",
+    wordmark: "THE WORLD PICKLEBALL",
+    descriptor: "PODCAST",
+  },
+  magazine: {
+    src: "/brand/logo-wpm.png",
+    alt: "World Pickleball Magazine wordmark",
   },
   set: {
     backgroundSrc: "/brand/set-background.svg",
-    backgroundLabel: "Placeholder virtual set — dark cyclorama + court lines",
+    backgroundLabel: "The World Pickleball Podcast set — indigo court + yellow accents",
   },
   lowerThirds: {
-    hostName: "Host",
-    hostTitle: "World Pickleball Studio",
-    guestName: "Guest",
-    guestTitle: "Remote guest",
-    kicker: "LIVE FROM THE KITCHEN",
+    hostName: "Chris Beaumont",
+    hostTitle: "The World Pickleball Podcast",
+    guestName: "Gordon Watson",
+    guestTitle: "Co-host",
+    kicker: "WORLD PICKLEBALL PODCAST",
   },
   introOutro: {
-    introLabel: "Intro sting (placeholder)",
-    outroLabel: "Outro sting (placeholder)",
+    introLabel: "Intro sting (placeholder audio)",
+    outroLabel: "Outro sting (placeholder audio)",
     introDurationMs: 1400,
     outroDurationMs: 1600,
   },
   episodeDefaults: {
-    title: "Episode 1 — Kitchen strategy with [Guest]",
+    title: "The World Pickleball Podcast — Chris Beaumont & Gordon Watson",
     description:
-      "Placeholder episode copy. Swap in the real guest, topic, and show notes when episode #1 is locked.",
-    artworkSrc: "/brand/artwork-placeholder.svg",
-    artworkAlt: "Placeholder episode artwork",
+      "Chris Beaumont and Gordon Watson chat about the world game of pickleball, uncovering the most fascinating pickleball stories from across the globe in their own fun, unique style. Weekly, with a light-hearted but very serious world pickleball fix.",
+    artworkSrc: "/brand/show-artwork.jpg",
+    artworkAlt: "The World Pickleball Podcast show artwork",
   },
   demo: {
-    episodeId: "demo-kitchen-rally",
-    title: "Demo — Two voices from the kitchen",
+    episodeId: "demo-wpp-edit",
+    title: "Demo — clean/edit path",
     description:
       "Synthetic demo audio so the clean/edit path works without a live take. Noise, breaths, and two voiced beds are baked in so each processor has something to do.",
     audioSrc: "/demo/kitchen-rally.wav",
+  },
+  sources: {
+    apple: "https://podcasts.apple.com/podcast/id1807059798",
+    spotify: "https://open.spotify.com/show/2YxXH3gi7xrMtveIKOxHa7",
+    alitu: "https://worldpickleballpodcast.alitu.com/",
+    magazine: "https://www.worldpickleballmagazine.com",
   },
 } as const;
 

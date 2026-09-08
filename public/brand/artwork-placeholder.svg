@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" role="img" aria-label="Placeholder episode artwork">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0B2E1C"/>
+      <stop offset="100%" stop-color="#14532D"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="800" fill="url(#bg)"/>
+  <g opacity="0.25" fill="none" stroke="#D4FF3A" stroke-width="6">
+    <rect x="80" y="80" width="640" height="640"/>
+    <line x1="80" y1="400" x2="720" y2="400"/>
+    <line x1="400" y1="80" x2="400" y2="720"/>
+    <rect x="220" y="280" width="360" height="240"/>
+  </g>
+  <circle cx="400" cy="360" r="110" fill="#D4FF3A"/>
+  <g fill="#14532D">
+    <circle cx="355" cy="315" r="18"/>
+    <circle cx="400" cy="300" r="18"/>
+    <circle cx="445" cy="315" r="18"/>
+    <circle cx="340" cy="360" r="18"/>
+    <circle cx="400" cy="360" r="18"/>
+    <circle cx="460" cy="360" r="18"/>
+    <circle cx="355" cy="405" r="18"/>
+    <circle cx="400" cy="420" r="18"/>
+    <circle cx="445" cy="405" r="18"/>
+  </g>
+  <text x="400" y="560" text-anchor="middle" fill="#F4EFE3" font-family="Arial Black, Helvetica, sans-serif" font-size="42" letter-spacing="8">WORLD PICKLEBALL</text>
+  <text x="400" y="610" text-anchor="middle" fill="#D4FF3A" font-family="Arial, Helvetica, sans-serif" font-size="28" letter-spacing="12">STUDIO  ·  EP 01</text>
+  <text x="400" y="670" text-anchor="middle" fill="#E4C15A" font-family="Arial, Helvetica, sans-serif" font-size="18" letter-spacing="4">PLACEHOLDER ARTWORK</text>
+</svg>

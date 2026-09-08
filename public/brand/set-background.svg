@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Placeholder virtual set background">
+  <defs>
+    <linearGradient id="cyc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#08150F"/>
+      <stop offset="55%" stop-color="#0F2A1C"/>
+      <stop offset="100%" stop-color="#14532D"/>
+    </linearGradient>
+    <radialGradient id="spot" cx="50%" cy="18%" r="55%">
+      <stop offset="0%" stop-color="#D4FF3A" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#D4FF3A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0B2E1C" stop-opacity="0"/>
+      <stop offset="20%" stop-color="#0B2E1C"/>
+      <stop offset="100%" stop-color="#07140F"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#cyc)"/>
+  <rect width="1920" height="1080" fill="url(#spot)"/>
+  <g opacity="0.22" fill="none" stroke="#D4FF3A" stroke-width="3">
+    <path d="M120 1080 L560 620 H1360 L1800 1080"/>
+    <path d="M560 620 V1080"/>
+    <path d="M1360 620 V1080"/>
+    <path d="M960 620 V1080"/>
+    <path d="M560 780 H1360"/>
+    <rect x="780" y="700" width="360" height="160"/>
+  </g>
+  <rect y="620" width="1920" height="460" fill="url(#floor)" opacity="0.85"/>
+  <g opacity="0.35" fill="none" stroke="#E4C15A" stroke-width="1">
+    <rect x="48" y="48" width="1824" height="984" rx="8"/>
+  </g>
+</svg>

@@ -1,21 +1,14 @@
 "use client";
 
 import { brand } from "@brand";
+import { parseTickerItems, setById, type StudioChrome } from "@/lib/studio-chrome";
 import { useEffect, useRef } from "react";
-
-export type LowerThirdsState = {
-  hostName: string;
-  hostTitle: string;
-  guestName: string;
-  guestTitle: string;
-  kicker: string;
-};
 
 type Props = {
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   role: "host" | "guest";
-  lowerThirds: LowerThirdsState;
+  chrome: StudioChrome;
   live: boolean;
   guestPresent: boolean;
 };
@@ -50,26 +43,34 @@ function SetVideo({
   );
 }
 
+function NameCard({ name, subtitle }: { name: string; subtitle: string }) {
+  return (
+    <div className="name-card">
+      <h3>{name}</h3>
+      {subtitle ? <p>{subtitle}</p> : null}
+    </div>
+  );
+}
+
 export function VirtualSet({
   localStream,
   remoteStream,
   role,
-  lowerThirds,
+  chrome,
   live,
   guestPresent,
 }: Props) {
   const hostStream = role === "host" ? localStream : remoteStream;
   const guestStream = role === "guest" ? localStream : remoteStream;
   const guestReady = role === "guest" ? Boolean(localStream) : guestPresent && Boolean(remoteStream);
+  const mySet = setById(role === "host" ? chrome.hostSetId : chrome.guestSetId);
+  const ticker = parseTickerItems(chrome.tickerText);
+  const logos = chrome.sponsorUrls.filter(Boolean);
 
   return (
     <section className="set" aria-label="Co-branded virtual set">
       <div className="set-stage">
-        <img
-          className="set-bg"
-          src={brand.set.backgroundSrc}
-          alt={brand.set.backgroundLabel}
-        />
+        <img className="set-bg" src={mySet.src} alt={mySet.label} />
         <div className="set-chrome">
           <div className="set-logo">
             <img src={brand.logo.src} alt={brand.logo.alt} width={48} height={48} />
@@ -92,11 +93,7 @@ export function VirtualSet({
         <div className="set-talent">
           <article className="talent">
             <SetVideo stream={hostStream} muted={role === "host"} mirror={role === "host"} emptyLabel="Host camera" />
-            <div className="lower-third">
-              <p className="lt-kicker">{lowerThirds.kicker}</p>
-              <h3>{lowerThirds.hostName || brand.lowerThirds.hostName}</h3>
-              <p>{lowerThirds.hostTitle || brand.lowerThirds.hostTitle}</p>
-            </div>
+            <NameCard name={chrome.hostName || brand.lowerThirds.hostName} subtitle={chrome.hostTitle} />
           </article>
           <article className={`talent ${guestReady ? "" : "talent-waiting"}`}>
             <SetVideo
@@ -105,19 +102,31 @@ export function VirtualSet({
               mirror={role === "guest"}
               emptyLabel="Waiting for remote guest"
             />
-            <div className="lower-third">
-              <p className="lt-kicker">{guestReady ? "REMOTE GUEST" : "OPEN CHAIR"}</p>
-              <h3>{lowerThirds.guestName || brand.lowerThirds.guestName}</h3>
-              <p>{lowerThirds.guestTitle || brand.lowerThirds.guestTitle}</p>
-            </div>
+            <NameCard name={chrome.guestName || brand.lowerThirds.guestName} subtitle={chrome.guestTitle} />
           </article>
         </div>
 
         <p className="set-show-title">{brand.showName}</p>
-        {brand.placeholder ? <p className="set-placeholder-flag">Placeholder brand kit</p> : (
-          <p className="set-placeholder-flag">WPP × WPM</p>
-        )}
+        <p className="set-placeholder-flag">WPP × WPM</p>
       </div>
+
+      {ticker.length > 0 ? (
+        <div className="set-ticker" aria-label="Live ticker">
+          <div className="set-ticker-track">
+            {[...ticker, ...ticker].map((item, i) => (
+              <span key={`${item}-${i}`}>{item}</span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {chrome.sponsorsOn ? (
+        <div className="set-sponsors" aria-label="Sponsors">
+          {logos.map((src, i) => (
+            <img key={`${src}-${i}`} src={src} alt={`Sponsor ${i + 1}`} />
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }

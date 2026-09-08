@@ -23,14 +23,12 @@ type SignalPayload = {
   data: unknown;
 };
 
-type LowerThirdPayload = {
+type ChromePayload = {
   sessionId: string;
-  hostName?: string;
-  hostTitle?: string;
-  guestName?: string;
-  guestTitle?: string;
-  kicker?: string;
+  patch?: Record<string, unknown>;
 };
+
+const roomChrome = new Map<string, Record<string, unknown>>();
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
@@ -73,6 +71,9 @@ app.prepare().then(() => {
         name: socket.data.name,
         id: socket.id,
       });
+
+      const chrome = roomChrome.get(sessionId);
+      if (chrome) socket.emit("chrome", chrome);
     });
 
     socket.on("signal", ({ sessionId, data }: SignalPayload) => {
@@ -80,9 +81,12 @@ app.prepare().then(() => {
       socket.to(sessionId).emit("signal", { from: socket.id, data });
     });
 
-    socket.on("lower-third", (payload: LowerThirdPayload) => {
-      if (!payload?.sessionId) return;
-      socket.to(payload.sessionId).emit("lower-third", payload);
+    socket.on("chrome", ({ sessionId, patch }: ChromePayload) => {
+      if (!sessionId || !patch || typeof patch !== "object") return;
+      const prev = roomChrome.get(sessionId) ?? {};
+      const next = { ...prev, ...patch };
+      roomChrome.set(sessionId, next);
+      io.to(sessionId).emit("chrome", next);
     });
 
     socket.on("disconnect", () => {

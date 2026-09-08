@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" role="img" aria-label="Partner logo placeholder">
+  <rect width="240" height="80" rx="8" fill="#0A0147"/>
+  <rect x="2" y="2" width="236" height="76" rx="6" fill="none" stroke="#C9C4E3" stroke-width="1" stroke-dasharray="6 4"/>
+  <text x="120" y="46" text-anchor="middle" fill="#C9C4E3" font-family="Arial, Helvetica, sans-serif" font-size="13">YOUR LOGO</text>
+</svg>

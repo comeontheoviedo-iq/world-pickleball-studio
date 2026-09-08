@@ -1,9 +1,11 @@
 "use client";
 
 import { brand } from "@brand";
-import { VirtualSet, type LowerThirdsState } from "@/components/VirtualSet";
+import { VirtualSet } from "@/components/VirtualSet";
+import { StudioChromePanel } from "@/components/StudioChromePanel";
 import { mixMediaStreams } from "@/lib/audio-engine";
 import { createEpisode, saveAudioBlob, upsertEpisode } from "@/lib/storage";
+import { defaultChrome, mergeChrome, type StudioChrome } from "@/lib/studio-chrome";
 import { useStudioSession } from "@/lib/useStudioSession";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -13,14 +15,22 @@ type Props = {
   role: "host" | "guest";
 };
 
-function defaultLowerThirds(name: string, role: "host" | "guest"): LowerThirdsState {
-  return {
-    hostName: role === "host" ? name : brand.lowerThirds.hostName,
-    hostTitle: brand.lowerThirds.hostTitle,
-    guestName: role === "guest" ? name : brand.lowerThirds.guestName,
-    guestTitle: brand.lowerThirds.guestTitle,
-    kicker: brand.lowerThirds.kicker,
-  };
+function chromeStorageKey(sessionId: string) {
+  return `wps.chrome.${sessionId}`;
+}
+
+function initialChrome(sessionId: string, role: "host" | "guest", displayName: string): StudioChrome {
+  const base = defaultChrome();
+  if (role === "host") base.hostName = displayName || base.hostName;
+  else base.guestName = displayName || base.guestName;
+  if (typeof window === "undefined") return base;
+  try {
+    const raw = sessionStorage.getItem(chromeStorageKey(sessionId));
+    if (raw) return mergeChrome(base, JSON.parse(raw) as Partial<StudioChrome>);
+  } catch {
+    /* ignore */
+  }
+  return base;
 }
 
 export function StudioRoom({ sessionId, role }: Props) {
@@ -80,9 +90,10 @@ function LiveStudio({
 }) {
   const router = useRouter();
   const session = useStudioSession(sessionId, role, displayName);
-  const [lowerThirds, setLowerThirds] = useState<LowerThirdsState>(() =>
-    defaultLowerThirds(displayName, role),
-  );
+  const [chrome, setChrome] = useState<StudioChrome>(() => initialChrome(sessionId, role, displayName));
+  const chromeRef = useRef(chrome);
+  chromeRef.current = chrome;
+  const seeded = useRef(false);
   const [recording, setRecording] = useState(false);
   const [recError, setRecError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -95,20 +106,46 @@ function LiveStudio({
   }, [sessionId]);
 
   useEffect(() => {
-    return session.onLowerThirds((lt) => {
-      setLowerThirds((prev) => ({ ...prev, ...lt }));
+    if (!session.remoteChrome) return;
+    seeded.current = true;
+    setChrome((prev) => {
+      const next = mergeChrome(prev, session.remoteChrome!);
+      try {
+        sessionStorage.setItem(chromeStorageKey(sessionId), JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
     });
-  }, [session]);
+  }, [session.remoteChrome, sessionId]);
 
   useEffect(() => {
-    if (session.peerName && role === "host") {
-      setLowerThirds((lt) => ({ ...lt, guestName: session.peerName || lt.guestName }));
-    }
-  }, [session.peerName, role]);
+    if (session.signalState !== "ready") return;
+    const send = session.sendChrome;
+    const t = window.setTimeout(() => {
+      const snap = chromeRef.current;
+      if (role === "guest") {
+        send({ guestName: displayName, guestSetId: snap.guestSetId });
+        return;
+      }
+      if (seeded.current) return;
+      seeded.current = true;
+      send(snap);
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [session.signalState, session.sendChrome, role, displayName]);
 
-  function pushLowerThirds(next: LowerThirdsState) {
-    setLowerThirds(next);
-    session.sendLowerThirds(next);
+  function patchChrome(patch: Partial<StudioChrome>) {
+    setChrome((prev) => {
+      const next = mergeChrome(prev, patch);
+      try {
+        sessionStorage.setItem(chromeStorageKey(sessionId), JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+    session.sendChrome(patch);
   }
 
   async function copyInvite() {
@@ -197,7 +234,7 @@ function LiveStudio({
         localStream={session.localStream}
         remoteStream={session.remoteStream}
         role={role}
-        lowerThirds={lowerThirds}
+        chrome={chrome}
         live={recording || session.peerConnected}
         guestPresent={Boolean(session.peerName) || session.peerConnected}
       />
@@ -236,36 +273,7 @@ function LiveStudio({
                 : "Waiting for remote guest"}
             </p>
 
-            <div className="lt-grid">
-              <label>
-                Host name
-                <input
-                  value={lowerThirds.hostName}
-                  onChange={(e) => pushLowerThirds({ ...lowerThirds, hostName: e.target.value })}
-                />
-              </label>
-              <label>
-                Host title
-                <input
-                  value={lowerThirds.hostTitle}
-                  onChange={(e) => pushLowerThirds({ ...lowerThirds, hostTitle: e.target.value })}
-                />
-              </label>
-              <label>
-                Guest name
-                <input
-                  value={lowerThirds.guestName}
-                  onChange={(e) => pushLowerThirds({ ...lowerThirds, guestName: e.target.value })}
-                />
-              </label>
-              <label>
-                Guest title
-                <input
-                  value={lowerThirds.guestTitle}
-                  onChange={(e) => pushLowerThirds({ ...lowerThirds, guestTitle: e.target.value })}
-                />
-              </label>
-            </div>
+            <StudioChromePanel role={role} chrome={chrome} onPatch={patchChrome} />
 
             <div className="actions">
               {!recording ? (
@@ -283,10 +291,12 @@ function LiveStudio({
             </div>
           </>
         ) : (
-          <p className="hint">
-            You are on the shared set. The host controls recording, lower-thirds, and the path into the
-            episode workspace.
-          </p>
+          <>
+            <p className="hint">
+              Shared chrome (ticker, sponsors, name cards) follows the host. Pick your set background below.
+            </p>
+            <StudioChromePanel role={role} chrome={chrome} onPatch={patchChrome} />
+          </>
         )}
       </aside>
     </div>

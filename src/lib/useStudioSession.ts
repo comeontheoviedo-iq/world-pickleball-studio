@@ -3,16 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import { ICE_SERVERS, getStudioStream } from "@/lib/media";
+import type { StudioChrome } from "@/lib/studio-chrome";
 
 export type Role = "host" | "guest";
-
-export type LowerThirds = {
-  hostName: string;
-  hostTitle: string;
-  guestName: string;
-  guestTitle: string;
-  kicker: string;
-};
 
 type PeerJoined = { role: Role; name: string; id: string };
 
@@ -30,7 +23,7 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
   const [peerConnected, setPeerConnected] = useState(false);
   const [signalState, setSignalState] = useState<"connecting" | "ready" | "error">("connecting");
   const [error, setError] = useState<string | null>(null);
-  const lowerThirdHandler = useRef<((lt: LowerThirds) => void) | null>(null);
+  const [remoteChrome, setRemoteChrome] = useState<Partial<StudioChrome> | null>(null);
 
   const attachPeer = useCallback(
     async (socket: Socket, stream: MediaStream) => {
@@ -118,8 +111,8 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
           pcRef.current = null;
         });
 
-        socket.on("lower-third", (payload: LowerThirds) => {
-          lowerThirdHandler.current?.(payload);
+        socket.on("chrome", (payload: Partial<StudioChrome>) => {
+          setRemoteChrome(payload);
         });
 
         socket.on("signal", async ({ data }: { data: Record<string, unknown> }) => {
@@ -172,19 +165,12 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
     };
   }, [attachPeer, displayName, role, sessionId]);
 
-  const sendLowerThirds = useCallback(
-    (payload: LowerThirds) => {
-      socketRef.current?.emit("lower-third", { sessionId, ...payload });
+  const sendChrome = useCallback(
+    (patch: Partial<StudioChrome>) => {
+      socketRef.current?.emit("chrome", { sessionId, patch });
     },
     [sessionId],
   );
-
-  const onLowerThirds = useCallback((handler: (lt: LowerThirds) => void) => {
-    lowerThirdHandler.current = handler;
-    return () => {
-      if (lowerThirdHandler.current === handler) lowerThirdHandler.current = null;
-    };
-  }, []);
 
   return {
     localStream,
@@ -194,7 +180,7 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
     peerConnected,
     signalState,
     error,
-    sendLowerThirds,
-    onLowerThirds,
+    remoteChrome,
+    sendChrome,
   };
 }

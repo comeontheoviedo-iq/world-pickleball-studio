@@ -40,8 +40,47 @@ export const brand = {
     alt: "World Pickleball Magazine wordmark",
   },
   set: {
-    backgroundSrc: "/brand/set-background.svg",
+    backgroundSrc: "/brand/sets/court.svg",
     backgroundLabel: "The World Pickleball Podcast set — indigo court + yellow accents",
+  },
+  sets: [
+    {
+      id: "court",
+      name: "Indigo court",
+      src: "/brand/sets/court.svg",
+      label: "Default shared studio — pickleball court in WPP indigo",
+    },
+    {
+      id: "night",
+      name: "Night rally",
+      src: "/brand/sets/night.svg",
+      label: "Darker indigo with WPM blue wash",
+    },
+    {
+      id: "magazine",
+      name: "Magazine floor",
+      src: "/brand/sets/magazine.svg",
+      label: "WPM blue-to-indigo editorial floor",
+    },
+    {
+      id: "spotlight",
+      name: "Yellow spotlight",
+      src: "/brand/sets/spotlight.svg",
+      label: "Hot yellow key light on indigo cyc",
+    },
+    {
+      id: "desk",
+      name: "Broadcast desk",
+      src: "/brand/sets/desk.svg",
+      label: "Two-window desk wall",
+    },
+  ],
+  sponsors: {
+    placeholders: [
+      "/brand/sponsors/wpm.svg",
+      "/brand/sponsors/wpp.svg",
+      "/brand/sponsors/partner.svg",
+    ],
   },
   lowerThirds: {
     hostName: "Chris Beaumont",

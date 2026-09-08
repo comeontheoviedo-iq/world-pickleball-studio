@@ -30,7 +30,8 @@ Kit version `wpp-v1` in `brand.config.ts` plus files under `/public/brand`. Stud
 | `/public/brand/show-artwork.jpg` | Public podcast cover (Apple / Alitu / Spotify) |
 | `/public/brand/logo-wp.svg` | wp monogram derived from that cover |
 | `/public/brand/logo-wpm.png` | World Pickleball Magazine site wordmark |
-| `/public/brand/set-background.svg` | Indigo court cyclorama with yellow accents |
+| `/public/brand/sets/*.svg` | Co-branded virtual sets (default: indigo court) |
+| `/public/brand/sponsors/*.svg` | Sponsor bar placeholders |
 | Lower-thirds | Chris Beaumont (host) / Gordon Watson (co-host) |
 
 Public listings: [Apple Podcasts](https://podcasts.apple.com/podcast/id1807059798), [Spotify](https://open.spotify.com/show/2YxXH3gi7xrMtveIKOxHa7), [Alitu](https://worldpickleballpodcast.alitu.com/), [World Pickleball Magazine](https://www.worldpickleballmagazine.com).
@@ -41,6 +42,16 @@ Public listings: [Apple Podcasts](https://podcasts.apple.com/podcast/id180705979
 2. **Edit path** — Waveform trim, noise reduction, voice enhance, breath removal, placeholder intro/outro stings, WAV export. Works on a session take or on bundled demo audio.
 3. **Episode workspace** — Draft title, description, and artwork slots (show cover by default).
 4. **Brand kit** — `brand.config.ts` plus `/public/brand/*`.
+5. **Studio chrome** — host and guest each pick a co-branded set background (default: shared Indigo court); editable name cards; host-driven live ticker; optional sponsor bar (1–3 logos, off by default).
+
+## Studio chrome
+
+On a live session the producer dock (host) and guest monitor both talk to the same room state:
+
+- **Backgrounds** — five WPP/WPM looks under `/public/brand/sets`. Each person picks; both start on Indigo court so you look like one studio. Choice is kept for the session (signaling + `sessionStorage`).
+- **Name cards** — name + optional subtitle under each camera. Host can edit the guest card.
+- **Live ticker** — strip under the set. Host pastes a comma- or line-separated list; it scrolls for everyone.
+- **Sponsors** — toggle a logo bar. Defaults to `/public/brand/sponsors` placeholders; paste 1–3 URLs when a partner is live. Turning it on does not change the set layout.
 
 ## Still stubbed vs later product
 

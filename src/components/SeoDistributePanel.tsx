@@ -25,11 +25,7 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
   const ready = doneCount === DISTRIBUTE_ITEMS.length;
 
   async function copyField(key: string, text: string) {
-    try {
-      await copyText(text);
-    } catch {
-      window.prompt("Copy", text);
-    }
+    await copyText(text);
     setCopied(key);
     window.setTimeout(() => setCopied(null), 1600);
   }

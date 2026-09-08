@@ -10,7 +10,8 @@ import {
   encodeWav,
   type ProcessFlags,
 } from "@/lib/audio-engine";
-import { createEpisode, getEpisode, loadAudioBlob, upsertEpisode, type Episode } from "@/lib/storage";
+import { createEpisode, getEpisode, loadAudioBlob, upsertEpisode, withRepairedTitle, type Episode } from "@/lib/storage";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type WorkspaceTab = "draft" | "edit" | "seo" | "clips";
@@ -24,6 +25,7 @@ const defaultFlags: ProcessFlags = {
 };
 
 export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
+  const router = useRouter();
   const [episode, setEpisode] = useState<Episode | null>(null);
   const [tab, setTab] = useState<WorkspaceTab>(initialTab);
   const [buffer, setBuffer] = useState<AudioBuffer | null>(null);
@@ -47,8 +49,21 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
         audioKey: null,
       });
     }
+    if (ep && episodeId === brand.demo.episodeId) {
+      ep = withRepairedTitle(ep, brand.demo.title);
+    }
     setEpisode(ep ?? null);
   }, [episodeId]);
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
+
+  function goTab(next: WorkspaceTab) {
+    setTab(next);
+    const qs = next === "draft" ? "" : `?tab=${next}`;
+    router.replace(`/episode/${episodeId}${qs}`, { scroll: false });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -163,16 +178,16 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
         <p className="eyebrow">Episode workspace · {episode.status}</p>
         <h1>{episode.title}</h1>
         <div className="tabs">
-          <button className={tab === "draft" ? "tab on" : "tab"} onClick={() => setTab("draft")}>
+          <button className={tab === "draft" ? "tab on" : "tab"} onClick={() => goTab("draft")}>
             Draft
           </button>
-          <button className={tab === "edit" ? "tab on" : "tab"} onClick={() => setTab("edit")}>
+          <button className={tab === "edit" ? "tab on" : "tab"} onClick={() => goTab("edit")}>
             Clean / edit
           </button>
-          <button className={tab === "seo" ? "tab on" : "tab"} onClick={() => setTab("seo")}>
+          <button className={tab === "seo" ? "tab on" : "tab"} onClick={() => goTab("seo")}>
             SEO + distribute
           </button>
-          <button className={tab === "clips" ? "tab on" : "tab"} onClick={() => setTab("clips")}>
+          <button className={tab === "clips" ? "tab on" : "tab"} onClick={() => goTab("clips")}>
             Clips
           </button>
         </div>
@@ -284,7 +299,7 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
             <button className="btn primary" onClick={() => void exportWav()} disabled={!buffer || busy}>
               {busy ? "Rendering…" : "Export cleaned WAV"}
             </button>
-            <button className="btn" type="button" onClick={() => setTab("seo")}>
+            <button className="btn" type="button" onClick={() => goTab("seo")}>
               Next: SEO + distribute
             </button>
           </div>
@@ -296,7 +311,7 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
           artworkSrc={art}
           audio={buffer}
           onSave={(patch) => saveEpisode({ ...episode, ...patch })}
-          onNextClips={() => setTab("clips")}
+          onNextClips={() => goTab("clips")}
         />
       ) : (
         <ClipsPanel

@@ -81,6 +81,26 @@ export function upsertEpisode(episode: Episode) {
   writeEpisodes(next);
 }
 
+/** Old SEO heuristic leaked “Guest: X with X” into the episode title. Repair in this browser. */
+export function isLeakedGuestTitle(title: string) {
+  const t = title.trim();
+  return /^guest\s*:/i.test(t) || /([A-Za-z.]+(?:\s+[A-Za-z.]+)+)\s+with\s+\1/i.test(t);
+}
+
+export function withRepairedTitle(episode: Episode, fallbackTitle: string): Episode {
+  if (!isLeakedGuestTitle(episode.title) && !isLeakedGuestTitle(episode.seoTitle || "")) {
+    return episode;
+  }
+  const next: Episode = {
+    ...episode,
+    title: isLeakedGuestTitle(episode.title) ? fallbackTitle : episode.title,
+    seoTitle: isLeakedGuestTitle(episode.seoTitle || "") ? fallbackTitle : episode.seoTitle,
+    updatedAt: new Date().toISOString(),
+  };
+  upsertEpisode(next);
+  return next;
+}
+
 export function createEpisode(partial: Partial<Episode> & Pick<Episode, "id" | "title">): Episode {
   const now = new Date().toISOString();
   const episode = normalizeEpisode({

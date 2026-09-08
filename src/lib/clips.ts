@@ -138,7 +138,7 @@ function clipHook(s: string, max = 72): string {
 }
 
 function keywordHooks(notes: string, title: string, description: string): string[] {
-  const topic = sanitizeHook(notes.match(/topic\s*[:—-]\s*(.+)/i)?.[1] || "");
+  const topic = sanitizeHook(notes.match(/topic\s*[:—-]\s*([^\n]+)/i)?.[1] || "");
   const extras = firstLines(notes, 8)
     .filter((l) => !/^(guest|hosts?|featuring|topic|chapter|clip)\b/i.test(l))
     .map(sanitizeHook)
@@ -162,10 +162,11 @@ function fallbackHooks(): string[] {
 }
 
 export function buildClipCaption(hook: string, title: string): string {
+  const from = sanitizeHook(title) || "this episode";
   return [
     hook,
     "",
-    `From “${title}” — ${brand.showName}.`,
+    `From “${from}” — ${brand.showName}.`,
     `Listen: ${brand.sources.alitu}`,
     "",
     "#pickleball #worldpickleball #TheWorldPickleballPodcast",
@@ -175,7 +176,7 @@ export function buildClipCaption(hook: string, title: string): string {
 function attachCopy(clips: Omit<ClipCandidate, "caption">[], title: string): ClipCandidate[] {
   const hooks = fallbackHooks();
   return clips.map((c, i) => {
-    const hook = c.hook || hooks[i % hooks.length];
+    const hook = clipHook(c.hook || hooks[i % hooks.length]);
     return { ...c, hook, caption: buildClipCaption(hook, title) };
   });
 }

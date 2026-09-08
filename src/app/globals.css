@@ -192,13 +192,20 @@ h2 {
 
 .episode-list a {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 0.8rem;
   align-items: center;
   padding: 0.95rem 1.1rem;
   border-radius: 16px;
   background: var(--panel, #12085A);
   border: 1px solid rgba(244, 239, 227, 0.08);
+}
+
+.episode-list strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .episode-list em {
@@ -501,6 +508,7 @@ h2 {
 
 .producer-head h2 {
   font-size: 1.5rem;
+  overflow-wrap: anywhere;
 }
 
 .signal {
@@ -524,6 +532,7 @@ h2 {
 
 .invite-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
@@ -631,7 +640,9 @@ label {
 }
 
 .workspace-head h1 {
-  font-size: clamp(2rem, 5vw, 3.4rem);
+  font-size: clamp(1.7rem, 5vw, 3.4rem);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
 }
 
 .checklist {
@@ -686,6 +697,26 @@ label {
   .lt-grid,
   .set-talent {
     grid-template-columns: 1fr;
+  }
+
+  .episode-list a {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .episode-list em {
+    grid-column: 2;
+  }
+
+  .clip-times {
+    grid-template-columns: 1fr;
+  }
+
+  .share-intents li {
+    flex-direction: column;
+  }
+
+  .invite-row input {
+    min-width: 0;
   }
 }
 

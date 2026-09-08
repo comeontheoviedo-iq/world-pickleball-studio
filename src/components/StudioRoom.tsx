@@ -7,6 +7,7 @@ import { mixMediaStreams } from "@/lib/audio-engine";
 import { createEpisode, saveAudioBlob, upsertEpisode } from "@/lib/storage";
 import { defaultChrome, mergeChrome, type StudioChrome } from "@/lib/studio-chrome";
 import { useStudioSession } from "@/lib/useStudioSession";
+import { copyText } from "@/lib/youtube-handoff";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -170,13 +171,9 @@ function LiveStudio({
   }
 
   async function copyInvite() {
-    try {
-      await navigator.clipboard.writeText(inviteUrl);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      window.prompt("Copy guest invite link", inviteUrl);
-    }
+    await copyText(inviteUrl);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
   }
 
   function startRecording() {

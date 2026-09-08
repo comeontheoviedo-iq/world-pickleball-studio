@@ -33,25 +33,47 @@ function firstLines(text: string, n = 8): string[] {
     .slice(0, n);
 }
 
+function looksLikeHost(name: string) {
+  return /chris beaumont|gordon watson|world pickleball/i.test(name);
+}
+
 function guessGuest(notes: string, title: string): string | null {
+  const namePat = "([A-Z][A-Za-z.]+(?:[ \\t]+[A-Z][A-Za-z.]+){0,3})";
+  const labeled = notes.match(new RegExp(`\\bguest\\s*[:—-]\\s*${namePat}`, "i"));
+  if (labeled) {
+    const name = labeled[1].trim();
+    if (!looksLikeHost(name)) return name;
+  }
   const blob = `${notes}\n${title}`;
   const m =
-    blob.match(/\b(?:guest|with|featuring|feat\.?)\s*[:—-]?\s*([A-Z][A-Za-z.]+(?:\s+[A-Z][A-Za-z.]+){0,3})/) ||
-    blob.match(/\b([A-Z][a-z]+ [A-Z][a-z]+)\b/);
+    blob.match(new RegExp(`\\b(?:featuring|feat\\.?)\\s*[:—-]?\\s*${namePat}`)) ||
+    blob.match(new RegExp(`\\bwith\\s+${namePat}\\s*(?:\\||$)`));
   if (!m) return null;
   const name = m[1].trim();
-  if (/chris beaumont|gordon watson|world pickleball/i.test(name)) return null;
+  if (looksLikeHost(name) || /\b(topic|hosts?)\b/i.test(name)) return null;
   return name;
 }
 
+function stripTitleDecor(title: string): string {
+  return title
+    .replace(/^demo\s*[—–-]\s*/i, "")
+    .replace(new RegExp(brand.showName, "ig"), "")
+    .replace(/^guest\s*[:—-]\s*/i, "")
+    .replace(/\s*\|\s*/g, " ")
+    .replace(/\s+with\s+[A-Z][A-Za-z.]+(?:\s+[A-Z][A-Za-z.]+)*\s*$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function guessTopic(notes: string, title: string, description: string): string {
-  const labeled = notes.match(/topic\s*[:—-]\s*(.+)/i);
+  const labeled = notes.match(/topic\s*[:—-]\s*([^\n]+)/i);
   if (labeled?.[1]) return labeled[1].replace(/[.!?]+$/, "").trim();
 
   const lines = firstLines(notes, 6);
+  const fromTitle = stripTitleDecor(title);
   const candidate =
     lines.find((l) => !/^(guest|hosts?|featuring|topic)\b/i.test(l) && l.length > 8 && l.length < 90) ||
-    title.replace(/^demo\s*[—–-]\s*/i, "").replace(brand.showName, "").trim() ||
+    (fromTitle && !/^(guest|hosts?|featuring)\b/i.test(fromTitle) && fromTitle.length < 90 ? fromTitle : "") ||
     firstLines(description, 1)[0] ||
     "the world game of pickleball";
   return candidate.replace(/[.!?]+$/, "").trim();
@@ -66,8 +88,11 @@ export function heuristicSeo(input: SeoInput): SeoCopy {
   const notes = input.notes.trim();
   const topic = guessTopic(notes, input.title, input.description);
   const guest = guessGuest(notes, input.title);
+  const topicHasGuest = Boolean(
+    guest && topic.toLowerCase().includes(`with ${guest.toLowerCase()}`),
+  );
   const title = clipTitle(
-    guest
+    guest && !topicHasGuest
       ? `${topic} with ${guest} | ${brand.showName}`
       : `${topic} | ${brand.showName}`,
   );

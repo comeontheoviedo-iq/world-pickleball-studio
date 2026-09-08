@@ -18,7 +18,7 @@ import {
 } from "@/lib/social";
 import type { Episode } from "@/lib/storage";
 import { copyText, downloadBlob } from "@/lib/youtube-handoff";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Props = {
   episode: Episode;
@@ -33,7 +33,7 @@ export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
   const [note, setNote] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(episode.clips[0]?.id ?? null);
 
-  const clips = episode.clips;
+  const clips = episode.clips ?? [];
   const platforms = { ...DEFAULT_SOCIAL_PLATFORMS, ...episode.socialPlatforms };
   const checks = episode.socialChecks || {};
   const items = useMemo(() => socialChecklist(platforms), [platforms]);
@@ -41,12 +41,13 @@ export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
   const pageUrl = brand.social.showUrl;
   const active = clips.find((c) => c.id === (activeId || clips[0]?.id)) ?? clips[0];
 
+  useEffect(() => {
+    if (activeId && clips.some((c) => c.id === activeId)) return;
+    setActiveId(clips[0]?.id ?? null);
+  }, [clips, activeId]);
+
   async function copyField(key: string, text: string) {
-    try {
-      await copyText(text);
-    } catch {
-      window.prompt("Copy", text);
-    }
+    await copyText(text);
     setCopied(key);
     window.setTimeout(() => setCopied(null), 1600);
   }
@@ -153,8 +154,19 @@ export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
           closed.
         </p>
         <div className="actions tight">
-          <button className="btn primary" type="button" onClick={() => void onDetect()} disabled={busy !== null}>
-            {busy === "detect" ? "Detecting…" : clips.length ? "Re-generate moments" : "Generate clip moments"}
+          <button
+            className="btn primary"
+            type="button"
+            onClick={() => void onDetect()}
+            disabled={busy !== null || !audio}
+          >
+            {busy === "detect"
+              ? "Detecting…"
+              : !audio
+                ? "Loading audio…"
+                : clips.length
+                  ? "Re-generate moments"
+                  : "Generate clip moments"}
           </button>
         </div>
       </fieldset>

@@ -184,10 +184,22 @@ export function downloadBlob(blob: Blob, filename: string) {
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
+  a.rel = "noopener";
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
+/** Always gives the user a way to copy. Callers can flash “Copied” after this resolves. */
 export async function copyText(text: string) {
-  await navigator.clipboard.writeText(text);
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+  } catch {
+    /* fall through to prompt */
+  }
+  window.prompt("Copy", text);
 }

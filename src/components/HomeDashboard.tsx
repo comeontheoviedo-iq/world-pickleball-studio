@@ -1,14 +1,14 @@
 "use client";
 
 import { brand } from "@brand";
-import { createEpisode, listEpisodes, type Episode } from "@/lib/storage";
+import { createEpisode, listEpisodes, withRepairedTitle, type Episode } from "@/lib/storage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 function ensureDemoEpisode(): Episode {
   const existing = listEpisodes().find((e) => e.id === brand.demo.episodeId);
-  if (existing) return existing;
+  if (existing) return withRepairedTitle(existing, brand.demo.title);
   return createEpisode({
     id: brand.demo.episodeId,
     title: brand.demo.title,

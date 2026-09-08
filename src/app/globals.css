@@ -655,6 +655,7 @@ label {
 
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
   margin: 1rem 0 1.4rem;
 }
@@ -873,4 +874,118 @@ label {
 .set-thumb.on {
   border-color: var(--lime, #FFF500);
   box-shadow: 0 0 0 1px var(--lime, #FFF500);
+}
+
+.clips-panel .lede {
+  margin-top: 0;
+}
+
+.clip-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.clip-card {
+  border: 1px solid rgba(244, 239, 227, 0.12);
+  border-radius: 14px;
+  padding: 0.75rem 1rem 1rem;
+  background: rgba(18, 8, 90, 0.35);
+}
+
+.clip-card.on {
+  border-color: rgba(255, 245, 0, 0.45);
+}
+
+.clip-select {
+  display: grid;
+  gap: 0.2rem;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  padding: 0.2rem 0 0.5rem;
+}
+
+.clip-select strong {
+  font-size: 1.05rem;
+  color: var(--cream, #F7F4EA);
+}
+
+.clip-select em {
+  font-style: normal;
+  color: var(--mist, #C9C4E3);
+  font-size: 0.85rem;
+}
+
+.source-badge {
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lime, #FFF500);
+}
+
+.clip-times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
+.social-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.7rem 0 0.3rem;
+}
+
+.platform-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid rgba(244, 239, 227, 0.16);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  color: var(--cream, #F7F4EA);
+  margin-top: 0;
+  font-size: 0.85rem;
+}
+
+.platform-pill.on {
+  border-color: var(--lime, #FFF500);
+  background: rgba(255, 245, 0, 0.1);
+}
+
+.platform-pill input {
+  width: auto;
+  accent-color: var(--lime, #FFF500);
+}
+
+.share-intents {
+  list-style: none;
+  padding: 0;
+  margin: 0.8rem 0 0;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.share-intents li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.share-intents small {
+  display: block;
+  color: var(--mist, #C9C4E3);
+  font-size: 0.78rem;
+}
+
+.connect-later {
+  margin-top: 1rem;
 }

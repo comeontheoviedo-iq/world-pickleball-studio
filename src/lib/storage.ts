@@ -1,3 +1,5 @@
+import type { ClipCandidate } from "@/lib/clips";
+
 const DB_NAME = "wps-studio";
 const STORE = "audio";
 
@@ -24,6 +26,9 @@ export type Episode = {
   youtubeTags: string;
   rssUrl: string;
   distributeChecks: DistributeChecks;
+  clips: ClipCandidate[];
+  socialChecks: Record<string, boolean>;
+  socialPlatforms: Record<string, boolean>;
 };
 
 const EPISODES_KEY = "wps.episodes";
@@ -41,6 +46,9 @@ function normalizeEpisode(raw: Episode): Episode {
     youtubeTags: raw.youtubeTags ?? "",
     rssUrl: raw.rssUrl ?? "",
     distributeChecks: raw.distributeChecks ?? EMPTY_DISTRIBUTE,
+    clips: raw.clips ?? [],
+    socialChecks: raw.socialChecks ?? {},
+    socialPlatforms: raw.socialPlatforms ?? {},
   };
 }
 
@@ -92,6 +100,9 @@ export function createEpisode(partial: Partial<Episode> & Pick<Episode, "id" | "
     youtubeTags: "",
     rssUrl: "",
     distributeChecks: {},
+    clips: [],
+    socialChecks: {},
+    socialPlatforms: {},
     ...partial,
   } as Episode);
   upsertEpisode(episode);

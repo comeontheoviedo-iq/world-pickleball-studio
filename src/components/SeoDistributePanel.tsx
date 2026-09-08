@@ -12,9 +12,10 @@ type Props = {
   artworkSrc: string;
   audio: AudioBuffer | null;
   onSave: (patch: Partial<Episode>) => void;
+  onNextClips?: () => void;
 };
 
-export function SeoDistributePanel({ episode, artworkSrc, audio, onSave }: Props) {
+export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextClips }: Props) {
   const [busy, setBusy] = useState<"seo" | "yt" | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -251,6 +252,13 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave }: Props
         </p>
       </fieldset>
       {note ? <p className="note">{note}</p> : null}
+      {onNextClips ? (
+        <div className="actions tight">
+          <button className="btn" type="button" onClick={onNextClips}>
+            Next: Clips
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

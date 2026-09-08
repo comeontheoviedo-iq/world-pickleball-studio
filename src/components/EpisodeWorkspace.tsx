@@ -2,6 +2,7 @@
 
 import { brand } from "@brand";
 import { WaveformEditor } from "@/components/WaveformEditor";
+import { ClipsPanel } from "@/components/ClipsPanel";
 import { SeoDistributePanel } from "@/components/SeoDistributePanel";
 import {
   applyPipeline,
@@ -12,7 +13,9 @@ import {
 import { createEpisode, getEpisode, loadAudioBlob, upsertEpisode, type Episode } from "@/lib/storage";
 import { useEffect, useState } from "react";
 
-type Props = { episodeId: string; initialTab?: "draft" | "edit" | "seo" };
+type WorkspaceTab = "draft" | "edit" | "seo" | "clips";
+
+type Props = { episodeId: string; initialTab?: WorkspaceTab };
 
 const defaultFlags: ProcessFlags = {
   noiseReduction: false,
@@ -22,7 +25,7 @@ const defaultFlags: ProcessFlags = {
 
 export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
   const [episode, setEpisode] = useState<Episode | null>(null);
-  const [tab, setTab] = useState<"draft" | "edit" | "seo">(initialTab);
+  const [tab, setTab] = useState<WorkspaceTab>(initialTab);
   const [buffer, setBuffer] = useState<AudioBuffer | null>(null);
   const [sourceLabel, setSourceLabel] = useState("Loading audio…");
   const [startSec, setStartSec] = useState(0);
@@ -169,6 +172,9 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
           <button className={tab === "seo" ? "tab on" : "tab"} onClick={() => setTab("seo")}>
             SEO + distribute
           </button>
+          <button className={tab === "clips" ? "tab on" : "tab"} onClick={() => setTab("clips")}>
+            Clips
+          </button>
         </div>
       </header>
 
@@ -204,8 +210,8 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
               />
             </label>
             <p className="hint">
-              Draft stays in this browser. Generate listing copy and the distribute checklist on the
-              SEO + distribute tab when the take is ready.
+              Draft stays in this browser. Generate listing copy on SEO + distribute, then cut
+              vertical clips on the Clips tab.
             </p>
           </div>
         </section>
@@ -284,8 +290,16 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
           </div>
           {note ? <p className="note">{note}</p> : null}
         </section>
-      ) : (
+      ) : tab === "seo" ? (
         <SeoDistributePanel
+          episode={episode}
+          artworkSrc={art}
+          audio={buffer}
+          onSave={(patch) => saveEpisode({ ...episode, ...patch })}
+          onNextClips={() => setTab("clips")}
+        />
+      ) : (
+        <ClipsPanel
           episode={episode}
           artworkSrc={art}
           audio={buffer}

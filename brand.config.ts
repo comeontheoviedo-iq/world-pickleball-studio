@@ -125,6 +125,13 @@ export const brand = {
     spotifySubmit: "https://podcasters.spotify.com/",
     googleSubmit: "https://support.google.com/youtube/answer/9472177",
   },
+  social: {
+    showUrl: "https://worldpickleballpodcast.alitu.com/",
+    xIntent: "https://twitter.com/intent/tweet",
+    linkedinShare: "https://www.linkedin.com/sharing/share-offsite/",
+    instagram: "https://www.instagram.com/",
+    tiktokUpload: "https://www.tiktok.com/tiktokstudio/upload",
+  },
 } as const;
 
 export type BrandConfig = typeof brand;

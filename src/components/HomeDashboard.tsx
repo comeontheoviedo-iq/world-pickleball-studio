@@ -71,6 +71,9 @@ export function HomeDashboard() {
           <li>
             <strong>SEO + distribute.</strong> Generate listing copy, tick Apple/Spotify/RSS, hand off a YouTube file + metadata.
           </li>
+          <li>
+            <strong>Clips → social.</strong> Detect moments, export 9:16 captioned clips, copy captions and share intents (manual syndicate).
+          </li>
         </ol>
       </section>
 

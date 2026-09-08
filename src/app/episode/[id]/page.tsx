@@ -12,5 +12,7 @@ export default function EpisodePage({
 }) {
   const { id } = use(params);
   const query = use(searchParams);
-  return <EpisodeWorkspace episodeId={id} initialTab={query.tab === "edit" ? "edit" : query.tab === "seo" ? "seo" : "draft"} />;
+  const tab =
+    query.tab === "edit" || query.tab === "seo" || query.tab === "clips" ? query.tab : "draft";
+  return <EpisodeWorkspace episodeId={id} initialTab={tab} />;
 }

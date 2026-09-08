@@ -21,11 +21,11 @@ Open [http://localhost:3010](http://localhost:3010).
 
 Mute/camera toggles are in the dock. **End session** leaves; if a take is in progress it still saves into edit. Guest uses **Leave session**.
 
-- **Edit without recording:** Home → **Open demo edit** (or any episode → **Clean / edit**). Then **SEO + distribute**.
+- **Edit without recording:** Home → **Open demo edit** (or any episode → **Clean / edit**). Then **SEO + distribute**, then **Clips**.
 
 `npm run dev` starts Next.js and the Socket.io signaling server on **port 3010** (same origin, path `/signal`). Default bind is `0.0.0.0` so preview URLs work; override with `PORT` / `HOSTNAME` if needed.
 
-No accounts, API keys, or `.env` files. Drafts live in **localStorage**; recorded takes live in **IndexedDB** in that browser. Optional `NEXT_PUBLIC_SEO_ENDPOINT` can POST for model-written copy; if unset, templates still run.
+No accounts, API keys, or `.env` files. Drafts live in **localStorage**; recorded takes live in **IndexedDB** in that browser. Optional `NEXT_PUBLIC_SEO_ENDPOINT` / `NEXT_PUBLIC_CLIPS_ENDPOINT` can POST for model-written copy or moments; if unset, heuristics still run.
 
 ## SEO + distribute
 
@@ -35,6 +35,15 @@ From an episode (Home → Open demo edit, or after Stop recording):
 2. Paste optional notes or a transcript. **Generate title + show notes** — edit before you publish. Copy is saved on the draft.
 3. Tick the podcast checklist (copy RSS stub, Apple, Spotify, artwork). Links go to submit docs, not OAuth.
 4. **Render video for YouTube** downloads a branded 16:9 WebM (or a labeled PNG slate). Copy title/description/tags, then **Open YouTube Studio upload**.
+5. **Next: Clips** for vertical social cuts.
+
+## Clips → social
+
+From the same episode workspace (**Clips** tab, after SEO + distribute):
+
+1. **Generate clip moments** — 2–5 ranges from the session take or demo audio. Heuristics: energy after silence, chapter/timestamp lines in notes, keyword hooks, or evenly spaced stubs (labeled). Optional `NEXT_PUBLIC_CLIPS_ENDPOINT` fails closed.
+2. Tweak **in/out** and the hook title. **Export this clip** downloads a branded 9:16 WebM with burned-in captions (navy/indigo + neon yellow), or a PNG slate if the browser cannot encode video. **Batch export** downloads every candidate.
+3. Toggle **X / LinkedIn / Instagram / TikTok** (no hardcoded account). Copy the caption, open a share intent or app web page, tick the manual checklist. Auto-post is a **connect later** stub.
 
 ## Brand kit (WPP + WPM)
 
@@ -56,7 +65,7 @@ Public listings: [Apple Podcasts](https://podcasts.apple.com/podcast/id180705979
 
 1. **Recording / set** — WebRTC (STUN only: `stun.l.google.com`). Shared 16:9 WPP set, logo, LIVE while recording. Host starts a session, copies an invite, records a mixed-audio take; Stop opens Clean / edit with that take.
 2. **Edit path** — Waveform trim, noise reduction, voice enhance, breath removal, placeholder intro/outro stings, WAV export. Works on a session take or on bundled demo audio.
-3. **Episode workspace** — Draft title, description, artwork, then SEO + distribute (listing copy, directory checklist, YouTube handoff).
+3. **Episode workspace** — Draft title, description, artwork, then SEO + distribute (listing copy, directory checklist, YouTube handoff) and Clips (moments → 9:16 export → social checklist).
 4. **Brand kit** — `brand.config.ts` plus `/public/brand/*`.
 5. **Studio chrome** — host and guest each pick a co-branded set background (default: shared Indigo court); host can also set the guest look; editable name cards; host-driven live ticker; optional sponsor bar (1–3 logos, off by default).
 
@@ -81,13 +90,14 @@ On a live session the producer dock (host) and guest monitor both talk to the sa
 | Episode draft | Local to the browser | Studio backend + RSS item |
 | RSS / directories | In-app submit checklist + RSS URL stub | Live feed + OAuth |
 | YouTube | File + metadata handoff to Studio upload | Direct API publish |
+| Social clips | Heuristic moments + 9:16 export + manual share intents | OAuth auto-post, ML virality |
 
 If `getUserMedia` is blocked (headless preview, denied permission), the set still renders with branded talent frames so the co-branded layout is visible.
 
 ## Out of scope (slice 1)
 
 - YouTube API OAuth / in-app upload
-- Auto social clips / audiograms
+- Social OAuth auto-post / paid ML speech-to-virality (heuristic clips + manual syndicate ship in this slice)
 - Zoom ingest
 - Live RSS feed generation (checklist + URL stub only)
 - Accounts, billing, or multi-device draft sync
@@ -108,6 +118,9 @@ src/app                  ← Home, /session/[id], /join/[id], /episode/[id]
 src/components           ← Virtual set, producer dock, waveform, episode draft
 src/lib/seo.ts               ← title/show notes heuristics + optional endpoint
 src/lib/youtube-handoff.ts   ← 16:9 WebM/slate download for YouTube Studio
+src/lib/clips.ts             ← moment detect (energy / notes / spacing)
+src/lib/clip-render.ts       ← 9:16 captioned WebM / slate
+src/lib/social.ts            ← captions, platform toggles, share intents
 src/lib/useStudioSession.ts ← WebRTC + signaling client
 public/brand             ← WPP/WPM logo, set, show artwork
 public/demo              ← synthetic demo WAV

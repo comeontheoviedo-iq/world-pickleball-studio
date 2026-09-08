@@ -23,7 +23,12 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave }: Props
   const doneCount = DISTRIBUTE_ITEMS.filter((i) => checks[i.id]).length;
   const ready = doneCount === DISTRIBUTE_ITEMS.length;
 
-  async function flash(key: string) {
+  async function copyField(key: string, text: string) {
+    try {
+      await copyText(text);
+    } catch {
+      window.prompt("Copy", text);
+    }
     setCopied(key);
     window.setTimeout(() => setCopied(null), 1600);
   }
@@ -144,11 +149,7 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave }: Props
             <button
               className={copied === "rss" ? "btn primary" : "btn"}
               type="button"
-              onClick={() => {
-                void copyText(rssUrl)
-                  .then(() => flash("rss"))
-                  .catch(() => window.prompt("Copy RSS URL", rssUrl));
-              }}
+              onClick={() => void copyField("rss", rssUrl)}
             >
               {copied === "rss" ? "Copied" : "Copy RSS"}
             </button>
@@ -215,31 +216,23 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave }: Props
           <button
             className={copied === "yt-title" ? "btn primary" : "btn"}
             type="button"
-            onClick={() => {
-              void copyText(episode.youtubeTitle || episode.seoTitle || episode.title).then(() =>
-                flash("yt-title"),
-              );
-            }}
+            onClick={() =>
+              void copyField("yt-title", episode.youtubeTitle || episode.seoTitle || episode.title)
+            }
           >
             {copied === "yt-title" ? "Copied" : "Copy title"}
           </button>
           <button
             className={copied === "yt-desc" ? "btn primary" : "btn"}
             type="button"
-            onClick={() => {
-              void copyText(episode.youtubeDescription || episode.seoDescription).then(() =>
-                flash("yt-desc"),
-              );
-            }}
+            onClick={() => void copyField("yt-desc", episode.youtubeDescription || episode.seoDescription)}
           >
             {copied === "yt-desc" ? "Copied" : "Copy description"}
           </button>
           <button
             className={copied === "yt-tags" ? "btn primary" : "btn"}
             type="button"
-            onClick={() => {
-              void copyText(episode.youtubeTags).then(() => flash("yt-tags"));
-            }}
+            onClick={() => void copyField("yt-tags", episode.youtubeTags)}
           >
             {copied === "yt-tags" ? "Copied" : "Copy tags"}
           </button>

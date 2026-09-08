@@ -45,9 +45,12 @@ function guessGuest(notes: string, title: string): string | null {
 }
 
 function guessTopic(notes: string, title: string, description: string): string {
-  const lines = firstLines(notes, 3);
+  const labeled = notes.match(/topic\s*[:—-]\s*(.+)/i);
+  if (labeled?.[1]) return labeled[1].replace(/[.!?]+$/, "").trim();
+
+  const lines = firstLines(notes, 6);
   const candidate =
-    lines.find((l) => l.length > 8 && l.length < 80) ||
+    lines.find((l) => !/^(guest|hosts?|featuring|topic)\b/i.test(l) && l.length > 8 && l.length < 90) ||
     title.replace(/^demo\s*[—–-]\s*/i, "").replace(brand.showName, "").trim() ||
     firstLines(description, 1)[0] ||
     "the world game of pickleball";

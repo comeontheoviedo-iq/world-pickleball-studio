@@ -120,15 +120,26 @@ function parseChapters(notes: string, duration: number): ClipCandidate[] {
   return out.slice(0, MAX_CLIPS);
 }
 
+function sanitizeHook(s: string): string {
+  return s
+    .replace(/^guest\s*[:—-]\s*.*$/i, "")
+    .replace(new RegExp(`\\s*\\|\\s*${brand.showName}`, "i"), "")
+    .replace(/^demo\s*[—–-]\s*/i, "")
+    .replace(brand.showName, "")
+    .replace(/\s+with\s+[A-Z][A-Za-z.]+(?:\s+[A-Z][A-Za-z.]+)*\s*$/g, "")
+    .replace(/[.!?]+$/, "")
+    .trim();
+}
+
 function keywordHooks(notes: string, title: string, description: string): string[] {
-  const topic = notes.match(/topic\s*[:—-]\s*(.+)/i)?.[1]?.trim();
-  const extras = firstLines(notes, 8).filter(
-    (l) => !/^(guest|hosts?|featuring|topic|chapter|clip)\b/i.test(l) && l.length > 8 && l.length < 90,
-  );
-  const fromTitle = title.replace(/^demo\s*[—–-]\s*/i, "").replace(brand.showName, "").trim();
-  const hooks = [topic, ...extras, fromTitle, firstLines(description, 1)[0]].filter(
-    (s): s is string => Boolean(s && s.length > 4),
-  );
+  const topic = sanitizeHook(notes.match(/topic\s*[:—-]\s*(.+)/i)?.[1] || "");
+  const extras = firstLines(notes, 8)
+    .filter((l) => !/^(guest|hosts?|featuring|topic|chapter|clip)\b/i.test(l))
+    .map(sanitizeHook)
+    .filter((l) => l.length > 8 && l.length < 90);
+  const fromTitle = sanitizeHook(title);
+  const fromDesc = sanitizeHook(firstLines(description, 1)[0] || "");
+  const hooks = [topic, ...extras, fromTitle, fromDesc].filter((s) => s.length > 4);
   return [...new Set(hooks)].slice(0, 8);
 }
 

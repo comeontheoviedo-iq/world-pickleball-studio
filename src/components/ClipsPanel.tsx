@@ -65,8 +65,8 @@ export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
       const result = await proposeClipMoments({
         duration,
         notes: episode.notes,
-        title: episode.seoTitle || episode.title,
-        description: episode.seoDescription || episode.description,
+        title: episode.title,
+        description: episode.description,
         samples: audio ? monoFromBuffer(audio) : undefined,
         sampleRate: audio?.sampleRate,
       });

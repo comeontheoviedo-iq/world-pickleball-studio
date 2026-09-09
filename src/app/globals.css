@@ -1280,6 +1280,24 @@ label {
   background: var(--lime, #FFF500);
 }
 
+.vb-experimental {
+  margin-top: 0.85rem;
+  padding: 0.45rem 0.65rem 0.7rem;
+  border: 1px dashed rgba(244, 239, 227, 0.22);
+  border-radius: 12px;
+}
+
+.vb-experimental summary {
+  cursor: pointer;
+  color: var(--mist, #C9C4E3);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+}
+
+.vb-experimental summary:hover {
+  color: var(--cream, #F7F4EA);
+}
+
 .vb-gallery {
   margin-top: 0.65rem;
   padding: 0.55rem;

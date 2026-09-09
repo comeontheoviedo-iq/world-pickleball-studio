@@ -174,7 +174,9 @@ export const brand = {
       variant: "guest",
     },
   ],
-  /** Photoreal fills for camera VB only (Pick look). Never drive Set wallpaper. */
+  /** Zip of photoreal JPGs with human filenames for Zoom / OS / cam-app virtual backgrounds. */
+  cameraLooksZip: "/brand/camera-looks/wps-studio-looks.zip",
+  /** Photoreal fills for experimental in-app Pick look only. Never drive Set wallpaper. */
   cameraLooks: [
     {
       id: "loft",

@@ -63,8 +63,8 @@ export function HomeDashboard() {
         <ol>
           <li>
             <strong>Record on the set.</strong> Up to five people (solo → 5-up auto-reflow), invite
-            link, WPP lockup. Camera background (Off / Blur / Pick studio) replaces your real room
-            on cam; set wallpaper stays behind the tiles.
+            link, WPP lockup. Download studio looks for Zoom/OS virtual background, then join on
+            Camera background <strong>Off</strong>. Set wallpaper stays behind the tiles.
           </li>
           <li>
             <strong>Clean the take.</strong> Noise reduction, voice enhance, breath ducking, waveform

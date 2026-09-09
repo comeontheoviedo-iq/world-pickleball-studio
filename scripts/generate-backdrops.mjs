@@ -2,8 +2,11 @@
 /**
  * Writes WPM founder-studio virtual backdrops (square masters).
  * 16:9 laptop and 9:16 phone both crop via object-fit: cover.
+ * Also packs public/brand/camera-looks/wps-studio-looks.zip (human JPG names).
  */
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -475,10 +478,55 @@ for (const [id, xml] of Object.entries(packs)) {
 console.log("backdrops:", Object.keys(packs).join(", "));
 
 const looksDir = join(dirname(fileURLToPath(import.meta.url)), "../public/brand/camera-looks");
+/** Keep in sync with brand.cameraLooks[].name — zip filenames Chris sees in Finder/Zoom. */
+const lookNames = {
+  loft: "Founder loft",
+  nightglass: "Night glass office",
+  kitchen: "Kitchen island",
+  editorial: "Editorial office",
+  neon: "Daylight studio",
+  afterhours: "After hours",
+  ledwall: "Podcast desk",
+  dawn: "Morning desk",
+  frost: "Glass meeting room",
+  pulse: "Podcast booth",
+  skyline: "Skyline loft",
+  atrium: "Glass atrium",
+  carbon: "Brick loft",
+  grid: "White studio",
+  midnight: "Midnight office",
+  rally: "Startup studio",
+  mezzanine: "Mezzanine",
+  amber: "Amber coworking",
+};
+let missingLooks = 0;
 for (const id of Object.keys(packs)) {
   const file = join(looksDir, `${id}.jpg`);
   if (!existsSync(file)) {
     console.error("missing camera look", file);
+    missingLooks += 1;
+  }
+}
+if (missingLooks) {
+  process.exitCode = 1;
+} else {
+  const stage = mkdtempSync(join(tmpdir(), "wps-looks-"));
+  writeFileSync(
+    join(stage, "README.txt"),
+    "World Pickleball Studio — camera looks\n\n" +
+      "Add these JPGs in Zoom (Settings → Background & Effects), macOS Continuity Camera, or your cam app.\n" +
+      "Then join Studio with Camera background = Off so the native keyed camera comes through.\n",
+  );
+  for (const [id, name] of Object.entries(lookNames)) {
+    copyFileSync(join(looksDir, `${id}.jpg`), join(stage, `${name}.jpg`));
+  }
+  const zipPath = join(looksDir, "wps-studio-looks.zip");
+  const packed = spawnSync("zip", ["-q", "-r", zipPath, "."], { cwd: stage, encoding: "utf8" });
+  rmSync(stage, { recursive: true, force: true });
+  if (packed.status !== 0) {
+    console.error("zip failed", packed.stderr);
     process.exitCode = 1;
+  } else {
+    console.log("wrote", zipPath);
   }
 }

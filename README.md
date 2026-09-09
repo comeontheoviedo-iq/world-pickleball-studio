@@ -7,7 +7,7 @@ Alitu-class branded podcast studio — **Phase 2.1**. Host and up to four remote
 ```bash
 npm install
 npm run generate:demo        # writes public/demo/kitchen-rally.wav (already committed)
-npm run generate:backdrops   # writes branded SVG wallpapers; checks camera-look JPGs
+npm run generate:backdrops   # SVG wallpapers + camera-look zip (human filenames)
 npm run dev
 ```
 
@@ -19,17 +19,19 @@ No accounts, API keys, or `.env` required. Drafts live in **localStorage**; reco
 
 ## Phase 2.1 — camera virtual backgrounds
 
+**Recommended:** download the photoreal studio looks, apply them in Zoom / macOS Continuity Camera / your cam app, then join Studio with Camera background **Off** (raw cam already keyed). In-app Blur / Pick look is experimental.
+
 Zoom-style **camera** backgrounds (not the set wallpaper behind tiles):
 
-1. Turn on **Camera background** in the producer dock (host or guest).
-2. Pick **Off** (raw cam), **Blur**, or **Pick look** and a founder-studio fill.
-3. Person segmentation (MediaPipe Selfie Segmentation) cuts you out and composites the studio **into your camera stream**. Local preview and WebRTC send use that replacement `MediaStream`. No green screen.
-4. Guests who tick **Allow host to set my camera background** can receive the host’s **Apply to all (opted-in)**.
-5. If the browser cannot segment, or the machine drops below a usable frame rate, VB turns **Off**, the raw camera stays live, and a toast explains why.
+1. Producer dock → **Download studio looks** (zip of 18 JPGs with human names).
+2. Set the JPG in Zoom or the OS camera, then keep Studio on **Off**.
+3. Optional: experimental in-app **Blur** / **Pick look** (MediaPipe in the browser — not Zoom-quality in motion).
+4. Guests who tick **Allow host to set my experimental in-app background** can receive **Apply experimental to opted-in guests**.
+5. If the in-app cutout cannot run, Studio stays on Off and a toast explains why.
 
-First enable downloads an on-device model from Google / jsDelivr (WASM + `.tflite`). After that it runs locally.
+First in-app enable downloads an on-device model from Google / jsDelivr (WASM + `.tflite`). After that it runs locally.
 
-**Fallback:** unsupported device, blocked camera, missing `canvas.captureStream`, WASM failure, or CPU/GPU struggling → disable VB, keep raw cam, toast. Placeholder stand-in (no real camera) cannot run VB — allow camera and **Retry devices**.
+**Fallback:** unsupported device, blocked camera, missing `canvas.captureStream`, WASM failure, or CPU/GPU struggling → disable in-app VB, keep raw cam, toast. Placeholder stand-in (no real camera) cannot run in-app VB — allow camera and **Retry devices**.
 
 ### Browser support (known limits)
 
@@ -41,7 +43,7 @@ First enable downloads an on-device model from Google / jsDelivr (WASM + `.tflit
 | **iOS Safari / Chrome** | Mixed. Needs `canvas.captureStream` + WASM. Portrait 9:16 crop of the same square master. Fallback is common on older iOS. |
 | **Firefox** | WASM CPU often works; GPU delegate is unreliable. Same toast fallback. |
 
-Edges use the selfie **confidence** mask (soft alpha), a 2px feather, and light temporal smoothing so hair/shoulders are less jagged than a hard category cut. Busy rooms that match skin tone can still leak.
+Edges on the experimental in-app cutout are not Zoom-quality in motion. Prefer native VB + Studio Off.
 
 Set **wallpaper** (Phase 2) is unchanged: it still sits behind the tiles. Camera VB is the cutout *inside* each tile.
 
@@ -62,7 +64,7 @@ Shipped on top of the slice 1 pipeline:
 1. Home → **Start a session**.
 2. **Copy link**. Open `/join/<id>` in a second tab (or a phone on port 3010).
 3. Guest: name → **Join session**. Host layout reflows from solo → 1+1 (more guests → 1+2 / 4-up / 5-up).
-4. Producer dock: **Camera background** → Off / Blur / Pick look. Guests may opt in so the host can **Apply to all (opted-in)**. Set **wallpaper** is separate (behind tiles).
+4. Producer dock: **Download studio looks**, then Camera background **Off**. Set **wallpaper** is separate (behind tiles). Experimental Blur / Pick look is folded under the dock.
 5. **Start recording** → **Stop recording**. Opens **Clean / edit**.
 6. Trim / FX → **Export cleaned WAV** (lands on **Clips**) or **Next: export verticals**.
 7. **Generate clip moments** → **Export all verticals**. Copy captions; tick Shorts / IG / TikTok / LinkedIn / X.
@@ -76,8 +78,8 @@ Deep links: `/episode/<id>?tab=edit` | `?tab=clips` | `?tab=seo`.
 
 ### How to try camera backgrounds + set wallpaper / layouts
 
-- **Camera background:** Off / Blur / Pick look. Pick a studio — your real room should disappear on your tile (badge **Cam studio**) and on the guest’s view of you. If it cannot run, a yellow/red toast appears and the raw camera stays.
-- Guest: tick **Allow host to set my camera background**, then host **Apply to all (opted-in)**.
+- **Camera background:** **Download studio looks** for Zoom/OS, then keep **Off** in Studio. Experimental Blur / Pick look is optional. If in-app cutout cannot run, a toast appears and the raw camera stays.
+- Guest: tick **Allow host to set my experimental in-app background**, then host **Apply experimental to opted-in guests**.
 - **Set wallpaper:** branded SVG graphics under **Set wallpaper**. Click a thumb (your monitor). **Apply wallpaper to all** syncs every seat’s *tile backdrop*, not their camera.
 - Resize the window under ~720px: stage becomes **9:16** and the SVG cover-crops for phone. Camera fills are separate 16:9 JPGs.
 - **Layouts 1–5**: Auto is default. Join extra `/join/<id>` tabs to watch reflow, or pin 4-up / 5-up to preview empty seats.
@@ -89,7 +91,7 @@ Deep links: `/episode/<id>?tab=edit` | `?tab=clips` | `?tab=seo`.
 - [ ] Dry run above reaches Clips + existing-catalogue checklist.
 - [ ] Set lockup is **one square logo** + wordmark (no landscape WPM on the set).
 - [ ] Branded SVG wallpapers + photoreal camera looks are separate; Pick look does not change the stage; Apply wallpaper to all works.
-- [ ] Camera background Off / Blur / Pick on host; guest opt-in + host Apply to all (opted-in).
+- [ ] **Download studio looks** zip works; Studio Off is the recommended in-session mode; experimental Blur/Pick stay available.
 - [ ] Unsupported / slow path toasts and keeps the raw camera.
 - [ ] Solo → 5-up auto-reflow with extra join tabs.
 - [ ] Copy buttons flash **Copied**.
@@ -118,7 +120,8 @@ Kit version `wpp-v2` in `brand.config.ts` plus `/public/brand`. Product name **W
 | `/public/brand/logo-wp.svg` | wp monogram from that cover |
 | `/public/brand/logo-wpm.png` | Magazine wordmark (kit file; **not** duplicated on the set lockup) |
 | `/public/brand/backdrops/*.svg` | 18 branded stage wallpapers (Set wallpaper only) |
-| `/public/brand/camera-looks/*.jpg` | 18 photoreal camera VB fills (Pick look only) |
+| `/public/brand/camera-looks/*.jpg` | 18 photoreal looks (download zip + experimental Pick look) |
+| `/public/brand/camera-looks/wps-studio-looks.zip` | Zip of those JPGs with human filenames |
 | `/public/brand/sponsors/*.svg` | Sponsor bar slots |
 | Lower-thirds | Chris Beaumont (host) / guests fill as they join |
 
@@ -139,7 +142,7 @@ Listings (existing show only): [Apple](https://podcasts.apple.com/podcast/id1807
 
 Producer dock (host) and guest monitor share room state:
 
-- **Camera background** — Off / Blur / Pick look (photoreal JPGs on the camera tile only); host Apply to all for opted-in guests.
+- **Camera background** — download photoreal looks for Zoom/OS; Studio **Off** recommended. Experimental in-app Blur / Pick look is optional.
 - **Set wallpaper** — branded SVG graphics behind tiles; default Founder loft; Apply wallpaper to all. Never driven by camera VB.
 - **Layouts** — auto or pin solo / 1+1 / 1+2 / 4-up / 5-up.
 - **Name cards** — host can edit every seat.

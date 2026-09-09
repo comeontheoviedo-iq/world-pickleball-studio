@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Indigo court set">
+  <defs>
+    <linearGradient id="court-cyc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#090046"/>
+      <stop offset="48%" stop-color="#13016F"/>
+      <stop offset="100%" stop-color="#050024"/>
+    </linearGradient>
+    <radialGradient id="court-spot" cx="50%" cy="16%" r="58%">
+      <stop offset="0%" stop-color="#FFF500" stop-opacity="0.18"/>
+      <stop offset="55%" stop-color="#046BD2" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#13016F" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="court-floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0A0147" stop-opacity="0"/>
+      <stop offset="18%" stop-color="#0A0147"/>
+      <stop offset="100%" stop-color="#050024"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#court-cyc)"/>
+  <rect width="1920" height="1080" fill="url(#court-spot)"/>
+  <g opacity="0.28" fill="none" stroke="#FFF500" stroke-width="3">
+    <path d="M120 1080 L560 620 H1360 L1800 1080"/>
+    <path d="M560 620 V1080"/>
+    <path d="M1360 620 V1080"/>
+    <path d="M960 620 V1080"/>
+    <path d="M560 780 H1360"/>
+    <rect x="780" y="700" width="360" height="160"/>
+  </g>
+  <g opacity="0.2" fill="none" stroke="#046BD2" stroke-width="2">
+    <ellipse cx="960" cy="430" rx="420" ry="210"/>
+    <ellipse cx="960" cy="430" rx="300" ry="150"/>
+  </g>
+  <rect y="620" width="1920" height="460" fill="url(#court-floor)" opacity="0.9"/>
+  <g opacity="0.4" fill="none" stroke="#FFF500" stroke-width="1.2">
+    <rect x="48" y="48" width="1824" height="984" rx="8"/>
+  </g>
+</svg>

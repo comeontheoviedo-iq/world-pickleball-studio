@@ -1,0 +1,26 @@
+{
+  "name": "world-pickleball-studio",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "PORT=3010 tsx server.ts",
+    "build": "next build",
+    "start": "NODE_ENV=production PORT=3010 tsx server.ts",
+    "typecheck": "tsc --noEmit",
+    "generate:demo": "node scripts/generate-demo-audio.mjs"
+  },
+  "dependencies": {
+    "next": "^15.5.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

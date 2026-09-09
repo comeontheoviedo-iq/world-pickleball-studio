@@ -23,6 +23,10 @@ const SLOW_FRAME_MS = 70;
 const SLOW_STREAK_LIMIT = 24;
 const MIN_AVG_FPS = 16;
 const FPS_SAMPLE = 45;
+/** Light edge feather on person alpha only (not the RGB plate). */
+const MASK_FEATHER_PX = 2;
+/** Temporal mix of the previous person-probability frame (reduces shimmer). */
+const MASK_EMA_PREV = 0.35;
 
 type MaskHandle = {
   width: number;
@@ -230,13 +234,14 @@ function readMaskValues(
   return { values, max };
 }
 
-function writePersonAlpha(
+/** Person probability in 0–1. Category 1 = person unless `invert` (sticky polarity). */
+function personProbability(
   values: ArrayLike<number>,
   count: number,
-  out: Uint8ClampedArray,
   kind: "category" | "confidence",
   invert: boolean,
   max: number,
+  out: Float32Array,
 ): void {
   for (let i = 0; i < count; i++) {
     const v = values[i] ?? 0;
@@ -245,14 +250,19 @@ function writePersonAlpha(
       const p = max > 1 ? v / max : v;
       person = invert ? 1 - p : p;
     } else if (max > 1) {
-      const hiIsPerson = !invert;
-      person = hiIsPerson ? (v > max / 2 ? 1 : 0) : v <= max / 2 ? 1 : 0;
+      person = invert ? (v <= max / 2 ? 1 : 0) : v > max / 2 ? 1 : 0;
     } else {
       const cat = Math.round(v);
       const isPerson = invert ? cat === 0 : cat === 1;
       person = isPerson ? 1 : 0;
     }
-    const a = Math.max(0, Math.min(255, (person * 255) | 0));
+    out[i] = person < 0 ? 0 : person > 1 ? 1 : person;
+  }
+}
+
+function writeAlphaImage(prob: Float32Array, count: number, out: Uint8ClampedArray): void {
+  for (let i = 0; i < count; i++) {
+    const a = Math.max(0, Math.min(255, (prob[i] * 255) | 0));
     const o = i * 4;
     out[o] = 255;
     out[o + 1] = 255;
@@ -271,9 +281,11 @@ export class VirtualBackgroundEngine {
   private output = document.createElement("canvas");
   private person = document.createElement("canvas");
   private maskCanvas = document.createElement("canvas");
+  private featherCanvas = document.createElement("canvas");
   private outCtx: CanvasRenderingContext2D | null;
   private personCtx: CanvasRenderingContext2D | null;
   private maskCtx: CanvasRenderingContext2D | null;
+  private featherCtx: CanvasRenderingContext2D | null;
   private segmenter: ImageSegmenterLike | null = null;
   private raf = 0;
   private lastTs = -1;
@@ -286,8 +298,10 @@ export class VirtualBackgroundEngine {
   private frameTimes: number[] = [];
   private loading: Promise<void> | null = null;
   private generation = 0;
-  /** null until the first mask; then sticky. true = documented polarity is reversed. */
+  /** null until the first mask; then sticky. true = documented polarity is reversed. Do not re-invert once locked. */
   private maskInvert: boolean | null = null;
+  private prevProb: Float32Array | null = null;
+  private workProb: Float32Array | null = null;
 
   constructor(private callbacks: VbEngineCallbacks) {
     this.video.playsInline = true;
@@ -297,6 +311,7 @@ export class VirtualBackgroundEngine {
     this.outCtx = this.output.getContext("2d", { alpha: false });
     this.personCtx = this.person.getContext("2d", { alpha: true });
     this.maskCtx = this.maskCanvas.getContext("2d", { alpha: true, willReadFrequently: true });
+    this.featherCtx = this.featherCanvas.getContext("2d", { alpha: true });
   }
 
   get stream(): MediaStream | null {
@@ -365,7 +380,8 @@ export class VirtualBackgroundEngine {
     this.frameTimes = [];
     this.lastTs = -1;
     this.lastFrameAt = 0;
-    this.maskInvert = null;
+    this.prevProb = null;
+    this.workProb = null;
     this.loop();
     const stream = this.captured;
     if (!stream) throw new Error(VB_FALLBACK_LOAD);
@@ -394,6 +410,8 @@ export class VirtualBackgroundEngine {
     this.video.srcObject = null;
     this.backdrop = null;
     this.maskInvert = null;
+    this.prevProb = null;
+    this.workProb = null;
   }
 
   private loop = () => {
@@ -454,52 +472,93 @@ export class VirtualBackgroundEngine {
     const result = seg.segmentForVideo(video, ts);
     const conf = result?.confidenceMasks;
     const category = result?.categoryMask;
-    // Clear path: category mask, value === 1 is person (selfie_segmenter). Confidence is fallback.
-    const kind: "category" | "confidence" = category ? "category" : "confidence";
-    const mask =
-      kind === "category"
-        ? category
-        : conf && conf.length > 0
-          ? conf[conf.length > 1 ? conf.length - 1 : 0]
-          : undefined;
-    if (!mask) return;
 
-    if (this.maskCanvas.width !== mask.width || this.maskCanvas.height !== mask.height) {
-      this.maskCanvas.width = mask.width;
-      this.maskCanvas.height = mask.height;
-    }
-
-    const { values, max } = readMaskValues(mask, kind === "confidence" ? "float32" : "uint8");
-    const count = mask.width * mask.height;
-    if (this.maskInvert === null && count > 0) {
-      let min = values[0] ?? 0;
-      for (let i = 1; i < count; i++) {
-        const v = values[i] ?? 0;
-        if (v < min) min = v;
-      }
-      // Wait until the mask has both classes so an empty first frame cannot lock polarity.
-      if (max - min > (max > 1 ? max * 0.15 : 0)) {
-        const cx = (mask.width / 2) | 0;
-        const cy = (mask.height / 2) | 0;
-        const center = values[cy * mask.width + cx] ?? 0;
-        if (kind === "confidence") {
-          const p = max > 1 ? center / max : center;
-          // Last of several masks is person probability; a single mask is often background.
-          this.maskInvert = conf && conf.length === 1 ? p > 0.45 : p < 0.45;
-        } else {
-          // Documented polarity is 1 (or high) = person. Center 0/low ⇒ this WASM build is inverted.
+    // Polarity from category only (selfie 1 = person). Sticky — do not re-invert after lock.
+    if (this.maskInvert === null && category) {
+      const { values, max } = readMaskValues(category, "uint8");
+      const count = category.width * category.height;
+      if (count > 0) {
+        let min = values[0] ?? 0;
+        for (let i = 1; i < count; i++) {
+          const v = values[i] ?? 0;
+          if (v < min) min = v;
+        }
+        if (max - min > (max > 1 ? max * 0.15 : 0)) {
+          const cx = (category.width / 2) | 0;
+          const cy = (category.height / 2) | 0;
+          const center = values[cy * category.width + cx] ?? 0;
           this.maskInvert = max > 1 ? center <= max / 2 : Math.round(center) === 0;
         }
       }
     }
-    const img = maskCtx.createImageData(mask.width, mask.height);
-    writePersonAlpha(values, count, img.data, kind, this.maskInvert === true, max);
+
+    // Soft person alpha from confidence when present; category is binary fallback.
+    const invert = this.maskInvert === true;
+    let kind: "category" | "confidence";
+    let mask: MaskHandle | undefined;
+    let invertValues = invert;
+    if (conf && conf.length > 0) {
+      kind = "confidence";
+      if (conf.length > 1) {
+        // [background, person] — pick the person class; invert selects the other index.
+        mask = invert ? conf[0] : conf[conf.length - 1];
+        invertValues = false;
+      } else {
+        mask = conf[0];
+        invertValues = invert;
+      }
+    } else {
+      kind = "category";
+      mask = category;
+      invertValues = invert;
+    }
+    if (!mask) return;
+
+    const mw = mask.width;
+    const mh = mask.height;
+    if (this.maskCanvas.width !== mw || this.maskCanvas.height !== mh) {
+      this.maskCanvas.width = mw;
+      this.maskCanvas.height = mh;
+      this.featherCanvas.width = mw;
+      this.featherCanvas.height = mh;
+      this.prevProb = null;
+      this.workProb = null;
+    }
+
+    const { values, max } = readMaskValues(mask, kind === "confidence" ? "float32" : "uint8");
+    const count = mw * mh;
+    if (!this.workProb || this.workProb.length !== count) this.workProb = new Float32Array(count);
+    personProbability(values, count, kind, invertValues, max, this.workProb);
+
+    if (!this.prevProb || this.prevProb.length !== count) {
+      this.prevProb = new Float32Array(this.workProb);
+    } else {
+      const prev = this.prevProb;
+      const cur = this.workProb;
+      for (let i = 0; i < count; i++) {
+        const mixed = cur[i] * (1 - MASK_EMA_PREV) + prev[i] * MASK_EMA_PREV;
+        cur[i] = mixed;
+        prev[i] = mixed;
+      }
+    }
+
     if (category && category !== mask) category.close();
     conf?.forEach((m) => {
       if (m !== mask) m.close();
     });
     mask.close();
+
+    const img = maskCtx.createImageData(mw, mh);
+    writeAlphaImage(this.workProb, count, img.data);
     maskCtx.putImageData(img, 0, 0);
+
+    const fctx = this.featherCtx;
+    if (fctx) {
+      fctx.clearRect(0, 0, mw, mh);
+      fctx.filter = `blur(${MASK_FEATHER_PX}px)`;
+      fctx.drawImage(this.maskCanvas, 0, 0);
+      fctx.filter = "none";
+    }
 
     if (this.mode === "studio" && this.backdrop) {
       coverDraw(out, this.backdrop, w, h);
@@ -516,7 +575,7 @@ export class VirtualBackgroundEngine {
     person.filter = "none";
     person.drawImage(video, 0, 0, w, h);
     person.globalCompositeOperation = "destination-in";
-    person.drawImage(this.maskCanvas, 0, 0, w, h);
+    person.drawImage(fctx ? this.featherCanvas : this.maskCanvas, 0, 0, w, h);
     person.globalCompositeOperation = "source-over";
 
     out.drawImage(this.person, 0, 0, w, h);

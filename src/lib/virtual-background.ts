@@ -23,10 +23,12 @@ const SLOW_FRAME_MS = 70;
 const SLOW_STREAK_LIMIT = 24;
 const MIN_AVG_FPS = 16;
 const FPS_SAMPLE = 45;
-/** Light edge feather on person alpha only (not the RGB plate). */
-const MASK_FEATHER_PX = 2;
-/** Temporal mix of the previous person-probability frame (reduces shimmer). */
-const MASK_EMA_PREV = 0.35;
+/** Alpha-only anti-alias. 0 = crisp matte (2px was the halo). Must stay ≤0.5 if re-enabled. */
+const MASK_FEATHER_PX = 0;
+/** Light temporal mix. 0.35 smeared the silhouette; 0.15 still damps flicker. */
+const MASK_EMA_PREV = 0.15;
+/** Pull mid alpha toward 0/1 after invert, before EMA/feather. */
+const MATTE_CONTRAST = 1.75;
 /**
  * MediaPipe Tasks selfie polarity is flipped in practice on Chrome desktop
  * (Chris dry-run: documented person class keyed the room). Invert soft alpha
@@ -258,6 +260,17 @@ function personProbability(
       person = Math.round(v) === 1 ? 1 : 0;
     }
     out[i] = person < 0 ? 0 : person > 1 ? 1 : person;
+  }
+}
+
+function hardenMatte(prob: Float32Array, count: number): void {
+  const k = MATTE_CONTRAST;
+  for (let i = 0; i < count; i++) {
+    const x = prob[i];
+    let y = (x - 0.5) * k + 0.5;
+    if (y < 0) y = 0;
+    else if (y > 1) y = 1;
+    prob[i] = y;
   }
 }
 
@@ -508,14 +521,16 @@ export class VirtualBackgroundEngine {
       const cur = this.workProb;
       for (let i = 0; i < count; i++) cur[i] = 1 - cur[i];
     }
+    hardenMatte(this.workProb, count);
 
     if (!this.prevProb || this.prevProb.length !== count) {
       this.prevProb = new Float32Array(this.workProb);
-    } else {
+    } else if (MASK_EMA_PREV > 0) {
       const prev = this.prevProb;
       const cur = this.workProb;
+      const keep = 1 - MASK_EMA_PREV;
       for (let i = 0; i < count; i++) {
-        const mixed = cur[i] * (1 - MASK_EMA_PREV) + prev[i] * MASK_EMA_PREV;
+        const mixed = cur[i] * keep + prev[i] * MASK_EMA_PREV;
         cur[i] = mixed;
         prev[i] = mixed;
       }
@@ -532,7 +547,8 @@ export class VirtualBackgroundEngine {
     maskCtx.putImageData(img, 0, 0);
 
     const fctx = this.featherCtx;
-    if (fctx) {
+    const useFeather = MASK_FEATHER_PX > 0 && Boolean(fctx);
+    if (useFeather && fctx) {
       fctx.clearRect(0, 0, mw, mh);
       fctx.filter = `blur(${MASK_FEATHER_PX}px)`;
       fctx.drawImage(this.maskCanvas, 0, 0);
@@ -554,7 +570,7 @@ export class VirtualBackgroundEngine {
     person.filter = "none";
     person.drawImage(video, 0, 0, w, h);
     person.globalCompositeOperation = "destination-in";
-    person.drawImage(fctx ? this.featherCanvas : this.maskCanvas, 0, 0, w, h);
+    person.drawImage(useFeather ? this.featherCanvas : this.maskCanvas, 0, 0, w, h);
     person.globalCompositeOperation = "source-over";
 
     out.drawImage(this.person, 0, 0, w, h);

@@ -49,7 +49,8 @@ export function VirtualBackgroundPanel({
       <legend>Camera background</legend>
       <p className="hint">
         Zoom-style: person cutout over a WPM studio — your real room disappears on cam (local
-        preview and what guests receive). This is not the set wallpaper behind the tiles.
+        preview and what guests receive). This is not the set wallpaper behind the tiles;
+        Pick look never changes the stage wallpaper.
         No green screen. Off keeps the raw camera.
       </p>
       <div className="vb-modes" role="group" aria-label="Camera background mode">

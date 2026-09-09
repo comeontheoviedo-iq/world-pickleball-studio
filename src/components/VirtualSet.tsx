@@ -194,6 +194,7 @@ export function VirtualSet({
   usingPlaceholder = false,
   localVbActive = false,
 }: Props) {
+  // Stage wallpaper is chrome.setBySlot only — camera VB setId never drives this.
   const mySet = viewerSet(chrome, mySlot);
   const ticker = chrome.tickerOn ? parseTickerItems(chrome.tickerText) : [];
   const logos = chrome.sponsorUrls.filter(Boolean);

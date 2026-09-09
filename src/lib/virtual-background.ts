@@ -216,9 +216,9 @@ async function createSegmenter(landscape: boolean): Promise<ImageSegmenterLike> 
 }
 
 /**
- * selfie_segmenter category mask: 0 = background, 1 = person.
- * Some WASM builds emit the opposite (0 = person) — invert when the frame center
- * (where the speaker sits) looks like background under the documented polarity.
+ * selfie_segmenter: category 0 = background, 1 = person.
+ * Do not auto-invert from a center pixel — that locked the wrong class after
+ * switching to confidence masks. Soft alpha comes from person-class confidence.
  */
 function readMaskValues(
   mask: MaskHandle,
@@ -234,12 +234,11 @@ function readMaskValues(
   return { values, max };
 }
 
-/** Person probability in 0–1. Category 1 = person unless `invert` (sticky polarity). */
+/** Person probability in 0–1. Category 1 / person-class confidence = opaque. Never invert. */
 function personProbability(
   values: ArrayLike<number>,
   count: number,
   kind: "category" | "confidence",
-  invert: boolean,
   max: number,
   out: Float32Array,
 ): void {
@@ -247,14 +246,11 @@ function personProbability(
     const v = values[i] ?? 0;
     let person: number;
     if (kind === "confidence") {
-      const p = max > 1 ? v / max : v;
-      person = invert ? 1 - p : p;
+      person = max > 1 ? v / max : v;
     } else if (max > 1) {
-      person = invert ? (v <= max / 2 ? 1 : 0) : v > max / 2 ? 1 : 0;
+      person = v > max / 2 ? 1 : 0;
     } else {
-      const cat = Math.round(v);
-      const isPerson = invert ? cat === 0 : cat === 1;
-      person = isPerson ? 1 : 0;
+      person = Math.round(v) === 1 ? 1 : 0;
     }
     out[i] = person < 0 ? 0 : person > 1 ? 1 : person;
   }
@@ -298,8 +294,6 @@ export class VirtualBackgroundEngine {
   private frameTimes: number[] = [];
   private loading: Promise<void> | null = null;
   private generation = 0;
-  /** null until the first mask; then sticky. true = documented polarity is reversed. Do not re-invert once locked. */
-  private maskInvert: boolean | null = null;
   private prevProb: Float32Array | null = null;
   private workProb: Float32Array | null = null;
 
@@ -409,7 +403,6 @@ export class VirtualBackgroundEngine {
     this.captured = null;
     this.video.srcObject = null;
     this.backdrop = null;
-    this.maskInvert = null;
     this.prevProb = null;
     this.workProb = null;
   }
@@ -472,45 +465,21 @@ export class VirtualBackgroundEngine {
     const result = seg.segmentForVideo(video, ts);
     const conf = result?.confidenceMasks;
     const category = result?.categoryMask;
-
-    // Polarity from category only (selfie 1 = person). Sticky — do not re-invert after lock.
-    if (this.maskInvert === null && category) {
-      const { values, max } = readMaskValues(category, "uint8");
-      const count = category.width * category.height;
-      if (count > 0) {
-        let min = values[0] ?? 0;
-        for (let i = 1; i < count; i++) {
-          const v = values[i] ?? 0;
-          if (v < min) min = v;
-        }
-        if (max - min > (max > 1 ? max * 0.15 : 0)) {
-          const cx = (category.width / 2) | 0;
-          const cy = (category.height / 2) | 0;
-          const center = values[cy * category.width + cx] ?? 0;
-          this.maskInvert = max > 1 ? center <= max / 2 : Math.round(center) === 0;
-        }
-      }
-    }
-
-    // Soft person alpha from confidence when present; category is binary fallback.
-    const invert = this.maskInvert === true;
+    // Soft person alpha: confidence[1] (person class). Never conf[0] (background).
+    // Category fallback: 1 = person, 0 = background. No center-pixel invert.
     let kind: "category" | "confidence";
     let mask: MaskHandle | undefined;
-    let invertValues = invert;
-    if (conf && conf.length > 0) {
+    if (conf && conf.length >= 2) {
       kind = "confidence";
-      if (conf.length > 1) {
-        // [background, person] — pick the person class; invert selects the other index.
-        mask = invert ? conf[0] : conf[conf.length - 1];
-        invertValues = false;
-      } else {
-        mask = conf[0];
-        invertValues = invert;
-      }
-    } else {
+      mask = conf[1] ?? conf[conf.length - 1];
+    } else if (category) {
       kind = "category";
       mask = category;
-      invertValues = invert;
+    } else if (conf && conf.length === 1) {
+      kind = "confidence";
+      mask = conf[0];
+    } else {
+      return;
     }
     if (!mask) return;
 
@@ -528,7 +497,7 @@ export class VirtualBackgroundEngine {
     const { values, max } = readMaskValues(mask, kind === "confidence" ? "float32" : "uint8");
     const count = mw * mh;
     if (!this.workProb || this.workProb.length !== count) this.workProb = new Float32Array(count);
-    personProbability(values, count, kind, invertValues, max, this.workProb);
+    personProbability(values, count, kind, max, this.workProb);
 
     if (!this.prevProb || this.prevProb.length !== count) {
       this.prevProb = new Float32Array(this.workProb);

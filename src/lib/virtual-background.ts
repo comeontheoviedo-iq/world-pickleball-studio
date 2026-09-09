@@ -27,6 +27,12 @@ const FPS_SAMPLE = 45;
 const MASK_FEATHER_PX = 2;
 /** Temporal mix of the previous person-probability frame (reduces shimmer). */
 const MASK_EMA_PREV = 0.35;
+/**
+ * MediaPipe Tasks selfie polarity is flipped in practice on Chrome desktop
+ * (Chris dry-run: documented person class keyed the room). Invert soft alpha
+ * before feather/EMA so destination-in keeps the speaker.
+ */
+const SELFIE_ALPHA_INVERT = true;
 
 type MaskHandle = {
   width: number;
@@ -216,9 +222,8 @@ async function createSegmenter(landscape: boolean): Promise<ImageSegmenterLike> 
 }
 
 /**
- * selfie_segmenter: category 0 = background, 1 = person.
- * Do not auto-invert from a center pixel — that locked the wrong class after
- * switching to confidence masks. Soft alpha comes from person-class confidence.
+ * selfie_segmenter docs: category 0 = background, 1 = person.
+ * Chrome desktop WASM is inverted in practice — see SELFIE_ALPHA_INVERT.
  */
 function readMaskValues(
   mask: MaskHandle,
@@ -498,6 +503,11 @@ export class VirtualBackgroundEngine {
     const count = mw * mh;
     if (!this.workProb || this.workProb.length !== count) this.workProb = new Float32Array(count);
     personProbability(values, count, kind, max, this.workProb);
+    // Chrome desktop: documented person class is background in this WASM build.
+    if (SELFIE_ALPHA_INVERT) {
+      const cur = this.workProb;
+      for (let i = 0; i < count; i++) cur[i] = 1 - cur[i];
+    }
 
     if (!this.prevProb || this.prevProb.length !== count) {
       this.prevProb = new Float32Array(this.workProb);

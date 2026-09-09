@@ -3,6 +3,7 @@
 import { brand } from "@brand";
 import { VirtualSet } from "@/components/VirtualSet";
 import { StudioChromePanel } from "@/components/StudioChromePanel";
+import { VirtualBackgroundPanel } from "@/components/VirtualBackgroundPanel";
 import { mixMediaStreams } from "@/lib/audio-engine";
 import { HOST_SLOT } from "@/lib/layouts";
 import { createEpisode, saveAudioBlob, upsertEpisode } from "@/lib/storage";
@@ -282,6 +283,24 @@ function LiveStudio({
   const localCameraOn = session.hasCamera ? session.cameraOn : true;
   const presentCount = 1 + session.peers.length;
   const guestList = session.peers.filter((p) => p.slot !== HOST_SLOT || role !== "host");
+  const cameraBackgroundPanel = (
+    <VirtualBackgroundPanel
+      role={role}
+      mode={session.vb.mode}
+      setId={session.vb.setId}
+      optIn={session.vb.optIn}
+      active={session.vb.active}
+      supported={session.vb.supported}
+      loading={session.vb.loading}
+      fps={session.vb.fps}
+      hasCamera={session.hasCamera}
+      usingPlaceholder={session.usingPlaceholder}
+      peers={session.peerVb}
+      onMode={session.vb.setMode}
+      onOptIn={session.vb.setOptIn}
+      onApplyToAll={session.applyVbToAll}
+    />
+  );
 
   return (
     <div className="studio">
@@ -296,6 +315,7 @@ function LiveStudio({
         localCameraOn={localCameraOn}
         localName={displayName}
         usingPlaceholder={session.usingPlaceholder}
+        localVbActive={session.vb.active}
       />
 
       <aside className="producer">
@@ -324,6 +344,14 @@ function LiveStudio({
         </div>
 
         {session.permissionNote ? <p className="note">{session.permissionNote}</p> : null}
+        {session.vbToast ? (
+          <p className="note warn" role="status">
+            {session.vbToast}{" "}
+            <button className="btn inline" type="button" onClick={session.dismissVbToast}>
+              Dismiss
+            </button>
+          </p>
+        ) : null}
         {session.error ? (
           <p className="note warn">
             {session.error}{" "}
@@ -392,6 +420,7 @@ function LiveStudio({
               </p>
             )}
 
+            {cameraBackgroundPanel}
             <StudioChromePanel
               role={role}
               mySlot={session.mySlot}
@@ -403,14 +432,15 @@ function LiveStudio({
         ) : (
           <>
             <p className="hint">
-              Shared chrome (ticker, sponsors, name cards, layout) follows the host. Pick your
-              backdrop below — or tap Apply to all so everyone shares the same studio.
+              Shared chrome (ticker, sponsors, name cards, layout) follows the host. Camera
+              background is yours — opt in if the host may push a studio look onto your cam.
             </p>
             <div className="actions tight">
               <button className="btn" type="button" onClick={() => void leaveSession()}>
                 Leave session
               </button>
             </div>
+            {cameraBackgroundPanel}
             <StudioChromePanel
               role={role}
               mySlot={session.mySlot}

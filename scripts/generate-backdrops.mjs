@@ -28,7 +28,7 @@ function wordmark(x, y, scale = 1, opacity = 0.28) {
 }
 
 function svg(id, label, body) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1920" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${label}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1920" viewBox="0 0 1920 1920" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${label}">
   <defs>
     ${body.defs}
   </defs>
@@ -276,6 +276,195 @@ const packs = {
     <rect y="1528" width="1920" height="10" fill="#FFF500" opacity="0.65"/>
     <rect y="1538" width="1920" height="382" fill="#050024"/>
     ${wordmark(160, 1684, 1, 0.46)}`,
+  }),
+
+  skyline: svg("skyline", "Skyline loft — night window grid", {
+    defs: `
+    <linearGradient id="sk-cyc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#040018"/>
+      <stop offset="55%" stop-color="#0A0147"/>
+      <stop offset="100%" stop-color="#02000C"/>
+    </linearGradient>
+    <linearGradient id="sk-glow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#046BD2" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#FFF500" stop-opacity="0.08"/>
+    </linearGradient>`,
+    art: `
+    <rect width="1920" height="1920" fill="url(#sk-cyc)"/>
+    <rect width="1920" height="1920" fill="url(#sk-glow)"/>
+    <g fill="#0B0138" stroke="#FFF500" stroke-opacity="0.16" stroke-width="2">
+      ${Array.from({ length: 8 }, (_, c) => {
+        const x = 80 + c * 230;
+        return `<rect x="${x}" y="120" width="200" height="1280" rx="6"/>`;
+      }).join("\n      ")}
+    </g>
+    ${Array.from({ length: 8 }, (_, c) =>
+      Array.from({ length: 14 }, (_, r) => {
+        const lit = (c + r) % 5 !== 0;
+        const yellow = (c * 3 + r) % 13 === 0;
+        return `<rect x="${100 + c * 230}" y="${160 + r * 86}" width="160" height="54" rx="2" fill="${yellow ? "#FFF500" : "#046BD2"}" opacity="${lit ? (yellow ? 0.45 : 0.22) : 0.05}"/>`;
+      }).join("\n    "),
+    ).join("\n    ")}
+    <rect y="1420" width="1920" height="500" fill="#050024"/>
+    <rect y="1412" width="1920" height="8" fill="#FFF500" opacity="0.5"/>
+    ${wordmark(160, 1688, 1, 0.44)}`,
+  }),
+
+  atrium: svg("atrium", "Indigo atrium — arched founder studio", {
+    defs: `
+    <linearGradient id="at-cyc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1C4FA8"/>
+      <stop offset="40%" stop-color="#13016F"/>
+      <stop offset="100%" stop-color="#060024"/>
+    </linearGradient>
+    <radialGradient id="at-well" cx="50%" cy="38%" r="48%">
+      <stop offset="0%" stop-color="#046BD2" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#13016F" stop-opacity="0"/>
+    </radialGradient>`,
+    art: `
+    <rect width="1920" height="1920" fill="url(#at-cyc)"/>
+    <rect width="1920" height="1920" fill="url(#at-well)"/>
+    <g fill="none" stroke="#FFF500" stroke-opacity="0.28" stroke-width="3">
+      <path d="M160 1480 Q160 240 960 240 Q1760 240 1760 1480"/>
+      <path d="M320 1480 Q320 400 960 400 Q1600 400 1600 1480"/>
+      <path d="M480 1480 Q480 560 960 560 Q1440 560 1440 1480"/>
+    </g>
+    <g fill="none" stroke="#F7F4EA" stroke-opacity="0.12" stroke-width="2">
+      <line x1="960" y1="240" x2="960" y2="1480"/>
+      <line x1="160" y1="1480" x2="1760" y2="1480"/>
+    </g>
+    <rect y="1480" width="1920" height="440" fill="#050024" opacity="0.85"/>
+    ${wordmark(160, 1692, 1, 0.46)}`,
+  }),
+
+  carbon: svg("carbon", "Carbon bay — dark panel seams", {
+    defs: `
+    <linearGradient id="cb-cyc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0A0A12"/>
+      <stop offset="100%" stop-color="#030308"/>
+    </linearGradient>`,
+    art: `
+    <rect width="1920" height="1920" fill="url(#cb-cyc)"/>
+    <g>
+      ${Array.from({ length: 6 }, (_, r) =>
+        Array.from({ length: 4 }, (_, c) => {
+          const x = 80 + c * 460;
+          const y = 80 + r * 280;
+          return `<rect x="${x}" y="${y}" width="430" height="250" rx="14" fill="#0C0C18" stroke="#FFF500" stroke-opacity="0.14" stroke-width="1.5"/>`;
+        }).join("\n      "),
+      ).join("\n      ")}
+    </g>
+    <rect x="80" y="80" width="430" height="250" rx="14" fill="none" stroke="#046BD2" stroke-opacity="0.45" stroke-width="2"/>
+    <rect x="1400" y="920" width="430" height="250" rx="14" fill="none" stroke="#FFF500" stroke-opacity="0.4" stroke-width="2"/>
+    ${wordmark(160, 1690, 1, 0.4)}`,
+  }),
+
+  grid: svg("grid", "Yellow grid — isometric court overlay", {
+    defs: `
+    <linearGradient id="gd-cyc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#13016F"/>
+      <stop offset="100%" stop-color="#050024"/>
+    </linearGradient>`,
+    art: `
+    <rect width="1920" height="1920" fill="url(#gd-cyc)"/>
+    <g fill="none" stroke="#FFF500" stroke-width="1.4" opacity="0.18">
+      ${Array.from({ length: 28 }, (_, i) => `<line x1="0" y1="${i * 72}" x2="1920" y2="${i * 72}"/>`).join("\n      ")}
+      ${Array.from({ length: 28 }, (_, i) => `<line x1="${i * 72}" y1="0" x2="${i * 72}" y2="1920"/>`).join("\n      ")}
+    </g>
+    <g fill="none" stroke="#FFF500" stroke-width="4" opacity="0.42">
+      <path d="M240 1760 L720 1040 H1200 L1680 1760"/>
+      <path d="M720 1040 V1760"/>
+      <path d="M1200 1040 V1760"/>
+      <path d="M960 1040 V1760"/>
+    </g>
+    <circle cx="960" cy="720" r="90" fill="none" stroke="#046BD2" stroke-width="3" opacity="0.5"/>
+    ${wordmark(160, 1688, 1, 0.42)}`,
+  }),
+
+  midnight: svg("midnight", "Midnight glass — near-black blue edge", {
+    defs: `
+    <linearGradient id="md-cyc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#000010"/>
+      <stop offset="100%" stop-color="#020018"/>
+    </linearGradient>
+    <radialGradient id="md-rim" cx="80%" cy="18%" r="42%">
+      <stop offset="0%" stop-color="#046BD2" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#046BD2" stop-opacity="0"/>
+    </radialGradient>`,
+    art: `
+    <rect width="1920" height="1920" fill="url(#md-cyc)"/>
+    <rect width="1920" height="1920" fill="url(#md-rim)"/>
+    <rect x="70" y="70" width="1780" height="1780" rx="40" fill="none" stroke="#046BD2" stroke-opacity="0.55" stroke-width="2"/>
+    <rect x="110" y="110" width="1700" height="1700" rx="32" fill="none" stroke="#FFF500" stroke-opacity="0.12" stroke-width="1"/>
+    <g opacity="0.15" fill="none" stroke="#F7F4EA" stroke-width="1">
+      <path d="M200 1600 L960 420 L1720 1600"/>
+    </g>
+    ${wordmark(180, 1696, 1, 0.38)}`,
+  }),
+
+  rally: svg("rally", "Rally night — perspective court lines", {
+    defs: `
+    <linearGradient id="ry-cyc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1A0C72"/>
+      <stop offset="100%" stop-color="#030014"/>
+    </linearGradient>`,
+    art: `
+    <rect width="1920" height="1920" fill="url(#ry-cyc)"/>
+    <g fill="none" stroke="#FFF500" stroke-width="3" opacity="0.38">
+      <path d="M80 1920 L640 900 H1280 L1840 1920"/>
+      <path d="M640 900 V1920"/>
+      <path d="M1280 900 V1920"/>
+      <path d="M960 900 V1920"/>
+      <path d="M640 1280 H1280"/>
+      <path d="M500 1560 H1420"/>
+    </g>
+    <g fill="none" stroke="#046BD2" stroke-width="2" opacity="0.28">
+      <ellipse cx="960" cy="640" rx="520" ry="160"/>
+      <ellipse cx="960" cy="640" rx="280" ry="80"/>
+    </g>
+    ${wordmark(160, 1690, 1, 0.44)}`,
+  }),
+
+  mezzanine: svg("mezzanine", "Mezzanine — stacked glass slabs", {
+    defs: `
+    <linearGradient id="mz-cyc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16086A"/>
+      <stop offset="100%" stop-color="#050020"/>
+    </linearGradient>
+    <linearGradient id="mz-slab" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F7F4EA" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#046BD2" stop-opacity="0.1"/>
+    </linearGradient>`,
+    art: `
+    <rect width="1920" height="1920" fill="url(#mz-cyc)"/>
+    <rect x="140" y="220" width="1640" height="220" rx="18" fill="url(#mz-slab)" stroke="#FFF500" stroke-opacity="0.22"/>
+    <rect x="240" y="560" width="1440" height="220" rx="18" fill="url(#mz-slab)" stroke="#046BD2" stroke-opacity="0.35"/>
+    <rect x="340" y="900" width="1240" height="220" rx="18" fill="url(#mz-slab)" stroke="#FFF500" stroke-opacity="0.18"/>
+    <rect x="180" y="1240" width="1560" height="260" rx="18" fill="url(#mz-slab)" stroke="#FFF500" stroke-opacity="0.28"/>
+    ${wordmark(160, 1684, 1, 0.44)}`,
+  }),
+
+  amber: svg("amber", "Amber desk — warm key, navy cyc", {
+    defs: `
+    <linearGradient id="am-cyc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0A0147"/>
+      <stop offset="48%" stop-color="#13016F"/>
+      <stop offset="100%" stop-color="#2A1800"/>
+    </linearGradient>
+    <radialGradient id="am-key" cx="50%" cy="88%" r="55%">
+      <stop offset="0%" stop-color="#FFF500" stop-opacity="0.42"/>
+      <stop offset="55%" stop-color="#FFF500" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#13016F" stop-opacity="0"/>
+    </radialGradient>`,
+    art: `
+    <rect width="1920" height="1920" fill="url(#am-cyc)"/>
+    <rect width="1920" height="1920" fill="url(#am-key)"/>
+    <rect y="1500" width="1920" height="14" fill="#FFF500" opacity="0.75"/>
+    <rect y="1514" width="1920" height="406" fill="#120800"/>
+    <g fill="none" stroke="#FFF500" stroke-opacity="0.2" stroke-width="2">
+      <rect x="200" y="200" width="1520" height="1180" rx="28"/>
+    </g>
+    ${wordmark(160, 1688, 1, 0.48)}`,
   }),
 };
 

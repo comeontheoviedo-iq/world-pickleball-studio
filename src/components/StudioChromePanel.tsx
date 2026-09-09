@@ -87,10 +87,11 @@ export function StudioChromePanel({ role, mySlot, chrome, presentCount, onPatch 
       )}
 
       <fieldset className="chrome-block">
-        <legend>Studio backdrops</legend>
+        <legend>Set wallpaper</legend>
         <p className="hint">
-          Ten founder-studio looks. Laptop (16:9) and phone (9:16) crop the same master. Everyone
-          starts on Founder loft — pick a variant or apply one studio to all.
+          Wallpaper behind the tiles (layouts 1–5). Laptop (16:9) and phone (9:16) crop the same
+          master. This does not replace anyone’s real room — use <strong>Camera background</strong>{" "}
+          above for the Zoom-style cutout.
         </p>
         <p className="picker-label">{role === "host" ? "Your backdrop" : "Your backdrop"}</p>
         <SetThumbs
@@ -103,7 +104,7 @@ export function StudioChromePanel({ role, mySlot, chrome, presentCount, onPatch 
             type="button"
             onClick={() => onPatch(applySetToAll(chrome, chrome.setBySlot[mySlot] || brand.sets[0].id))}
           >
-            Apply to all
+            Apply wallpaper to all
           </button>
         </div>
         {role === "host" ? (

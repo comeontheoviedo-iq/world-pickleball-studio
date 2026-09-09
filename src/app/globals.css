@@ -936,6 +936,8 @@ label {
   grid-template-columns: 1fr 1fr;
   gap: 0.45rem;
   margin-top: 0.45rem;
+  max-height: 22rem;
+  overflow: auto;
 }
 
 .set-thumb {
@@ -1224,6 +1226,31 @@ label {
   display: block;
   color: var(--mist, #C9C4E3);
   font-size: 0.78rem;
+}
+
+.frame-flag.studio-cam {
+  left: auto;
+  right: 0.55rem;
+  color: var(--ink, #090046);
+  background: var(--lime, #FFF500);
+}
+
+.vb-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.vb-peer-list {
+  margin: 0.45rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--mist, #C9C4E3);
+  font-size: 0.8rem;
+}
+
+.vb-peer-list li + li {
+  margin-top: 0.2rem;
 }
 
 .connect-later {

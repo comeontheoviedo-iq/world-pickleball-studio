@@ -478,26 +478,26 @@ for (const [id, xml] of Object.entries(packs)) {
 console.log("backdrops:", Object.keys(packs).join(", "));
 
 const looksDir = join(dirname(fileURLToPath(import.meta.url)), "../public/brand/camera-looks");
-/** Keep in sync with brand.cameraLooks[].name — zip filenames Chris sees in Finder/Zoom. */
+/** Keep in sync with brand.cameraLooks[].name — office pack uses hyphens (Founder-loft.jpg). */
 const lookNames = {
-  loft: "Founder loft",
-  nightglass: "Night glass office",
-  kitchen: "Kitchen island",
-  editorial: "Editorial office",
-  neon: "Daylight studio",
-  afterhours: "After hours",
-  ledwall: "Podcast desk",
-  dawn: "Morning desk",
-  frost: "Glass meeting room",
-  pulse: "Podcast booth",
-  skyline: "Skyline loft",
-  atrium: "Glass atrium",
-  carbon: "Brick loft",
-  grid: "White studio",
-  midnight: "Midnight office",
-  rally: "Startup studio",
+  loft: "Founder-loft",
+  nightglass: "Night-glass-office",
+  kitchen: "Kitchen-island",
+  editorial: "Editorial-office",
+  neon: "Daylight-studio",
+  afterhours: "After-hours",
+  ledwall: "Podcast-desk",
+  dawn: "Morning-desk",
+  frost: "Glass-meeting-room",
+  pulse: "Podcast-booth",
+  skyline: "Skyline-loft",
+  atrium: "Glass-atrium",
+  carbon: "Brick-loft",
+  grid: "White-studio",
+  midnight: "Midnight-office",
+  rally: "Startup-studio",
   mezzanine: "Mezzanine",
-  amber: "Amber coworking",
+  amber: "Amber-coworking",
 };
 let missingLooks = 0;
 for (const id of Object.keys(packs)) {
@@ -521,6 +521,7 @@ if (missingLooks) {
     copyFileSync(join(looksDir, `${id}.jpg`), join(stage, `${name}.jpg`));
   }
   const zipPath = join(looksDir, "wps-studio-looks.zip");
+  rmSync(zipPath, { force: true });
   const packed = spawnSync("zip", ["-q", "-r", zipPath, "."], { cwd: stage, encoding: "utf8" });
   rmSync(stage, { recursive: true, force: true });
   if (packed.status !== 0) {

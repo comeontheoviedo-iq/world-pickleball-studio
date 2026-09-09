@@ -59,8 +59,8 @@ export function VirtualBackgroundPanel({
         </a>
       </div>
       <p className="hint">
-        {brand.cameraLooks.length} JPGs with human names — add in Zoom (Background &amp; Effects) or
-        Continuity Camera, then keep Studio on Off.
+        {brand.cameraLooks.length} JPGs (Founder-loft.jpg, …) — add in Zoom (Background &amp; Effects),
+        macOS Continuity Camera, or Windows Camera, then keep Studio on Off.
       </p>
       <div className="vb-modes" role="group" aria-label="Camera background mode">
         <button

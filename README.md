@@ -23,8 +23,8 @@ No accounts, API keys, or `.env` required. Drafts live in **localStorage**; reco
 
 Zoom-style **camera** backgrounds (not the set wallpaper behind tiles):
 
-1. Producer dock → **Download studio looks** (zip of 18 JPGs with human names).
-2. Set the JPG in Zoom (Settings → Background & Effects), macOS Continuity Camera, or Windows Camera / your cam app, then keep Studio on **Off**.
+1. Producer dock → **Download studio looks** (zip of 18 JPGs, names like `Founder-loft.jpg`).
+2. **Zoom:** Settings → Background & Effects → add the JPG. **macOS:** Continuity Camera / cam app backgrounds. **Windows:** Camera / Zoom Background & Effects. Then keep Studio on **Off**.
 3. Optional: experimental in-app **Blur** / **Pick look** (MediaPipe in the browser — not Zoom-quality in motion).
 4. Guests who tick **Allow host to set my experimental in-app background** can receive **Apply experimental to opted-in guests**.
 5. If the in-app cutout cannot run, Studio stays on Off and a toast explains why.

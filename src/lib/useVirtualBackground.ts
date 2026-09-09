@@ -121,17 +121,17 @@ export function useVirtualBackground(opts: {
       const id = parseVbSetId(nextSetId ?? setIdRef.current);
       setSetIdState(id);
       setIdRef.current = id;
-      if (next !== "off" && (!hasCamera || usingPlaceholder)) {
-        onFallbackRef.current(VB_FALLBACK_NO_CAMERA);
-        return;
-      }
-      if (next !== "off" && !support.ok) {
-        onFallbackRef.current(support.reason || VB_FALLBACK_UNSUPPORTED);
-        return;
-      }
       const parsed = parseVbMode(next);
       setModeState(parsed);
       modeRef.current = parsed;
+      if (next === "off") return;
+      if (!hasCamera || usingPlaceholder) {
+        onFallbackRef.current(VB_FALLBACK_NO_CAMERA);
+        return;
+      }
+      if (!support.ok) {
+        onFallbackRef.current(support.reason || VB_FALLBACK_UNSUPPORTED);
+      }
     },
     [hasCamera, usingPlaceholder, support.ok, support.reason],
   );

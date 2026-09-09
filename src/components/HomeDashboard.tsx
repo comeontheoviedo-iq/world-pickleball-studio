@@ -40,13 +40,14 @@ export function HomeDashboard() {
         <div className="brand-lockup">
           <img src={brand.logo.src} alt={brand.logo.alt} width={56} height={56} />
           <div>
-            <p className="eyebrow">
-              {brand.placeholder ? "Placeholder brand kit" : brand.shortName}
-            </p>
+            <p className="eyebrow">{brand.shortName}</p>
             <h1>{brand.name}</h1>
           </div>
         </div>
-        <p className="lede">{brand.tagline} Host and remote guest share one co-branded set, then a tight clean/edit path.</p>
+        <p className="lede">
+          {brand.tagline} Host and remote guests share one co-branded set, then a tight clean/edit
+          path into vertical clips and the existing World Pickleball Podcast catalogue.
+        </p>
         <div className="actions">
           <button className="btn primary" onClick={startSession}>
             Start a session
@@ -58,21 +59,23 @@ export function HomeDashboard() {
       </header>
 
       <section className="pipeline">
-        <h2>Slice 1 pipeline</h2>
+        <h2>Phase 2 pipeline</h2>
         <ol>
           <li>
-            <strong>Record on the set.</strong> Browser WebRTC, invite link, shared World Pickleball Podcast set +
-            logo + lower-thirds.
+            <strong>Record on the set.</strong> Up to five people (solo → 5-up auto-reflow), invite
+            link, WPP lockup, founder-studio backdrops for laptop and phone.
           </li>
           <li>
-            <strong>Clean the take.</strong> Noise reduction, voice enhance, breath ducking, waveform trim,
-            intro/outro stings.
+            <strong>Clean the take.</strong> Noise reduction, voice enhance, breath ducking, waveform
+            trim, intro/outro stings.
           </li>
           <li>
-            <strong>SEO + distribute.</strong> Generate listing copy, tick Apple/Spotify/RSS, hand off a YouTube file + metadata.
+            <strong>Export verticals.</strong> Default after Stop / clean-edit — detect moments,
+            download 9:16 clips, post Shorts / IG / TikTok / LinkedIn / X.
           </li>
           <li>
-            <strong>Clips → social.</strong> Detect moments, export 9:16 captioned clips, copy captions and share intents (manual syndicate).
+            <strong>SEO + existing catalogue.</strong> Publish audio to Alitu. Spotify + Apple follow
+            the current RSS. Never create a new show.
           </li>
         </ol>
       </section>

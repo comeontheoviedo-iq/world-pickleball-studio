@@ -106,8 +106,8 @@ export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
       onSave({ socialChecks: { ...checks, export: true } });
       setNote(
         result.kind === "video"
-          ? `Downloaded ${result.filename} (9:16, captions burned in). Attach it when you post.`
-          : `Video encode unavailable here — downloaded a labeled 9:16 slate (${result.filename}). Drop it on a timeline with the take if you need motion.`,
+          ? `Vertical exported — ${result.filename} (9:16). Next: post to YouTube Shorts, IG, TikTok, LinkedIn, or X below.`
+          : `Video encode unavailable here — downloaded a labeled 9:16 slate (${result.filename}). Still post-ready as a still, or drop it on a timeline.`
       );
     } catch (err) {
       setNote(err instanceof Error ? err.message : "Clip export failed.");
@@ -130,7 +130,7 @@ export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
       }
       onSave({ socialChecks: { ...checks, export: true } });
       setNote(
-        `Batch done — ${videos} WebM clip${videos === 1 ? "" : "s"}${slates ? `, ${slates} PNG slate${slates === 1 ? "" : "s"}` : ""}.`,
+        `Verticals exported — ${videos} WebM clip${videos === 1 ? "" : "s"}${slates ? `, ${slates} PNG slate${slates === 1 ? "" : "s"}` : ""}. Post them from the checklist below.`,
       );
     } catch (err) {
       setNote(err instanceof Error ? err.message : "Batch export failed.");
@@ -141,10 +141,14 @@ export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
 
   return (
     <section className="clips-panel">
-      <p className="lede">
-        Detect clip-worthy moments from the take, export 9:16 captioned files, then syndicate by
-        hand. No social OAuth in this pass — connect later.
-      </p>
+      <div className="clips-hero">
+        <p className="eyebrow">Default after clean / edit</p>
+        <h2>Export verticals</h2>
+        <p>
+          Detect 2–5 moments, download 9:16 captioned files, then post to YouTube Shorts, Instagram,
+          TikTok, LinkedIn, and X. This is the step after Stop → Clean — do not skip it.
+        </p>
+      </div>
 
       <fieldset className="fx">
         <legend>Moment detect</legend>
@@ -169,6 +173,18 @@ export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
                   : "Generate clip moments"}
           </button>
         </div>
+        {clips.length > 0 ? (
+          <div className="actions tight">
+            <button
+              className="btn primary"
+              type="button"
+              disabled={busy !== null}
+              onClick={() => void onBatch()}
+            >
+              {busy === "batch" ? "Exporting all…" : "Export all verticals"}
+            </button>
+          </div>
+        ) : null}
       </fieldset>
 
       {clips.length === 0 ? (
@@ -247,9 +263,9 @@ export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
       )}
 
       {clips.length > 1 ? (
-        <div className="actions tight">
-          <button className="btn" type="button" disabled={busy !== null} onClick={() => void onBatch()}>
-            {busy === "batch" ? "Exporting all…" : "Batch export all clips"}
+        <div className="actions tight clips-batch">
+          <button className="btn primary" type="button" disabled={busy !== null} onClick={() => void onBatch()}>
+            {busy === "batch" ? "Exporting all…" : "Export all verticals"}
           </button>
         </div>
       ) : null}
@@ -319,7 +335,9 @@ export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
                       </button>
                       {href ? (
                         <a className="btn" href={href} target="_blank" rel="noreferrer">
-                          {p.id === "instagram" || p.id === "tiktok" ? "Open app web" : "Share intent"}
+                          {p.id === "instagram" || p.id === "tiktok" || p.id === "youtube-shorts"
+                            ? "Open upload"
+                            : "Share intent"}
                         </a>
                       ) : null}
                     </span>

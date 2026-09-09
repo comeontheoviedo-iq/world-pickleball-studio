@@ -1,20 +1,40 @@
 "use client";
 
 import { brand } from "@brand";
-import { parseTickerItems, setById, tickerItemAt, type StudioChrome } from "@/lib/studio-chrome";
-import { useEffect, useRef, useState } from "react";
+import { HOST_SLOT, layoutById, resolveLayout, type LayoutId } from "@/lib/layouts";
+import {
+  parseTickerItems,
+  tickerItemAt,
+  viewerSet,
+  type StudioChrome,
+} from "@/lib/studio-chrome";
+import type { StudioPeer } from "@/lib/useStudioSession";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+export type Seat = {
+  key: string;
+  slot: number;
+  stream: MediaStream | null;
+  name: string;
+  title: string;
+  handle: string;
+  muted: boolean;
+  cameraOn: boolean;
+  empty: boolean;
+  mirror: boolean;
+  emptyLabel: string;
+};
 
 type Props = {
   localStream: MediaStream | null;
-  remoteStream: MediaStream | null;
+  peers: StudioPeer[];
   role: "host" | "guest";
+  mySlot: number;
   chrome: StudioChrome;
   live: boolean;
-  guestPresent: boolean;
   localMuted: boolean;
   localCameraOn: boolean;
-  remoteMuted: boolean;
-  remoteCameraOn: boolean;
+  localName: string;
   usingPlaceholder?: boolean;
 };
 
@@ -83,29 +103,110 @@ function LiveTicker({ items, intervalMs }: { items: string[]; intervalMs: number
   );
 }
 
+export function buildSeats(opts: {
+  chrome: StudioChrome;
+  localStream: MediaStream | null;
+  peers: StudioPeer[];
+  mySlot: number;
+  localName: string;
+  localMuted: boolean;
+  localCameraOn: boolean;
+  usingPlaceholder: boolean;
+  role: "host" | "guest";
+}): { layout: LayoutId; seats: Seat[] } {
+  const { chrome, localStream, peers, mySlot, localName, localMuted, localCameraOn, usingPlaceholder, role } =
+    opts;
+  const bySlot = new Map<number, Seat>();
+  const hostCard = chrome.cards[HOST_SLOT];
+  bySlot.set(mySlot, {
+    key: "local",
+    slot: mySlot,
+    stream: localStream,
+    name: chrome.cards[mySlot]?.name || localName,
+    title: chrome.cards[mySlot]?.title || (mySlot === HOST_SLOT ? hostCard.title : "Guest"),
+    handle: chrome.cards[mySlot]?.handle || "",
+    muted: localMuted,
+    cameraOn: localCameraOn,
+    empty: false,
+    mirror: !usingPlaceholder,
+    emptyLabel: mySlot === HOST_SLOT ? "Host camera" : "Your camera",
+  });
+  for (const peer of peers) {
+    const card = chrome.cards[peer.slot];
+    bySlot.set(peer.slot, {
+      key: peer.id,
+      slot: peer.slot,
+      stream: peer.stream,
+      name: card?.name || peer.name || (peer.slot === HOST_SLOT ? hostCard.name : "Guest"),
+      title: card?.title || (peer.slot === HOST_SLOT ? hostCard.title : "Guest"),
+      handle: card?.handle || "",
+      muted: peer.muted,
+      cameraOn: peer.cameraOn,
+      empty: false,
+      mirror: false,
+      emptyLabel: peer.slot === HOST_SLOT ? "Host camera" : "Waiting for guest",
+    });
+  }
+
+  const present = [...bySlot.values()].sort((a, b) => a.slot - b.slot);
+  const layout = resolveLayout(chrome.layoutId, Math.max(1, present.length));
+  const needed = layoutById(layout).seats;
+  const seats = [...present];
+  let nextSlot = 0;
+  const used = new Set(seats.map((s) => s.slot));
+  while (seats.length < needed) {
+    while (used.has(nextSlot) && nextSlot < 5) nextSlot += 1;
+    const slot = nextSlot;
+    used.add(slot);
+    seats.push({
+      key: `empty-${slot}`,
+      slot,
+      stream: null,
+      name: chrome.cards[slot]?.name || (slot === HOST_SLOT ? brand.lowerThirds.hostName : "Guest"),
+      title: chrome.cards[slot]?.title || (slot === HOST_SLOT ? brand.lowerThirds.hostTitle : "Guest"),
+      handle: chrome.cards[slot]?.handle || "",
+      muted: false,
+      cameraOn: true,
+      empty: true,
+      mirror: false,
+      emptyLabel: slot === HOST_SLOT ? "Host camera" : "Waiting for guest",
+    });
+  }
+  seats.sort((a, b) => a.slot - b.slot);
+  void role;
+  return { layout, seats };
+}
+
 export function VirtualSet({
   localStream,
-  remoteStream,
+  peers,
   role,
+  mySlot,
   chrome,
   live,
-  guestPresent,
   localMuted,
   localCameraOn,
-  remoteMuted,
-  remoteCameraOn,
+  localName,
   usingPlaceholder = false,
 }: Props) {
-  const hostStream = role === "host" ? localStream : remoteStream;
-  const guestStream = role === "guest" ? localStream : remoteStream;
-  const guestReady = role === "guest" ? Boolean(localStream) : guestPresent && Boolean(remoteStream);
-  const hostMuted = role === "host" ? localMuted : remoteMuted;
-  const guestMuted = role === "guest" ? localMuted : remoteMuted;
-  const hostCameraOn = role === "host" ? localCameraOn : remoteCameraOn;
-  const guestCameraOn = role === "guest" ? localCameraOn : remoteCameraOn;
-  const mySet = setById(role === "host" ? chrome.hostSetId : chrome.guestSetId);
+  const mySet = viewerSet(chrome, mySlot);
   const ticker = chrome.tickerOn ? parseTickerItems(chrome.tickerText) : [];
   const logos = chrome.sponsorUrls.filter(Boolean);
+  const { layout, seats } = useMemo(
+    () =>
+      buildSeats({
+        chrome,
+        localStream,
+        peers,
+        mySlot,
+        localName,
+        localMuted,
+        localCameraOn,
+        usingPlaceholder,
+        role,
+      }),
+    [chrome, localStream, peers, mySlot, localName, localMuted, localCameraOn, usingPlaceholder, role],
+  );
 
   return (
     <section className="set" aria-label="Co-branded virtual set">
@@ -129,46 +230,29 @@ export function VirtualSet({
           )}
         </div>
 
-        <div className="set-talent">
-          <article className="talent">
-            <SetVideo
-              stream={hostStream}
-              muted={role === "host"}
-              mirror={role === "host" && !usingPlaceholder}
-              emptyLabel="Host camera"
-              cameraOff={Boolean(hostStream) && !hostCameraOn}
-              mutedBadge={hostMuted}
-            />
-            <NameCard
-              name={chrome.hostName || brand.lowerThirds.hostName}
-              subtitle={chrome.hostTitle}
-              handle={chrome.hostHandle}
-            />
-          </article>
-          <article className={`talent ${guestReady ? "" : "talent-waiting"}`}>
-            <SetVideo
-              stream={guestReady ? guestStream : null}
-              muted={role === "guest"}
-              mirror={role === "guest" && !usingPlaceholder}
-              emptyLabel="Waiting for remote guest"
-              cameraOff={guestReady && !guestCameraOn}
-              mutedBadge={guestReady && guestMuted}
-            />
-            <NameCard
-              name={chrome.guestName || brand.lowerThirds.guestName}
-              subtitle={chrome.guestTitle}
-              handle={chrome.guestHandle}
-            />
-          </article>
+        <div className={`set-talent layout-${layout}`} data-layout={layout}>
+          {seats.map((seat) => (
+            <article key={seat.key} className={`talent ${seat.empty ? "talent-waiting" : ""}`}>
+              <SetVideo
+                stream={seat.empty ? null : seat.stream}
+                muted={seat.key === "local"}
+                mirror={seat.mirror}
+                emptyLabel={seat.emptyLabel}
+                cameraOff={Boolean(seat.stream) && !seat.cameraOn}
+                mutedBadge={Boolean(seat.stream) && seat.muted}
+              />
+              <NameCard name={seat.name} subtitle={seat.title} handle={seat.handle} />
+            </article>
+          ))}
         </div>
 
         <p className="set-show-title">{brand.showName}</p>
-        <p className="set-placeholder-flag">WPP × WPM</p>
+        <p className="set-kit-flag">WPP × WPM</p>
 
         {chrome.bumperOn ? (
           <div className="set-bumper" role="status">
             <p className="eyebrow">Bumper / end slate</p>
-            <p>{chrome.bumperCopy || "Sponsor bumper placeholder"}</p>
+            <p>{chrome.bumperCopy || "Sponsor bumper"}</p>
           </div>
         ) : null}
       </div>

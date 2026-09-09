@@ -2,7 +2,7 @@
 
 import { brand } from "@brand";
 import { generateSeoCopy } from "@/lib/seo";
-import { DISTRIBUTE_ITEMS } from "@/lib/seo";
+import { DISTRIBUTE_ITEMS, REQUIRED_DISTRIBUTE_ITEMS } from "@/lib/seo";
 import { copyText, downloadBlob, renderYoutubeHandoff } from "@/lib/youtube-handoff";
 import type { Episode } from "@/lib/storage";
 import { useState } from "react";
@@ -21,8 +21,8 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
   const [note, setNote] = useState<string | null>(null);
   const rssUrl = episode.rssUrl || brand.distribute.rssStub;
   const checks = episode.distributeChecks || {};
-  const doneCount = DISTRIBUTE_ITEMS.filter((i) => checks[i.id]).length;
-  const ready = doneCount === DISTRIBUTE_ITEMS.length;
+  const requiredChecks = REQUIRED_DISTRIBUTE_ITEMS.filter((i) => checks[i.id]).length;
+  const ready = requiredChecks === REQUIRED_DISTRIBUTE_ITEMS.length;
 
   async function copyField(key: string, text: string) {
     await copyText(text);
@@ -85,9 +85,36 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
   return (
     <section className="seo-distribute">
       <p className="lede">
-        Generate listing copy, tick the directory checklist, then hand a file + metadata to YouTube
-        Studio. No OAuth in this pass.
+        World Pickleball Studio records and exports only. Keep <strong>Alitu as the RSS host</strong>{" "}
+        for the existing Spotify / Apple catalogue. <strong>Never create a new show.</strong>
       </p>
+
+      <div className="catalogue-banner">
+        <p className="eyebrow">Existing catalogue</p>
+        <h2>{brand.showName}</h2>
+        <p>
+          Spotify <code>{brand.sources.spotifyShowId}</code> · Apple Podcasts{" "}
+          <code>{brand.sources.appleId}</code> · Alitu{" "}
+          <a href={brand.sources.alitu} target="_blank" rel="noreferrer">
+            worldpickleballpodcast.alitu.com
+          </a>
+        </p>
+        <p className="hint">{brand.distribute.continuity}</p>
+        <p className="outlet-row">
+          <a href={brand.sources.spotify} target="_blank" rel="noreferrer">
+            Spotify
+          </a>
+          <a href={brand.sources.apple} target="_blank" rel="noreferrer">
+            Apple Podcasts
+          </a>
+          <a href={brand.sources.alitu} target="_blank" rel="noreferrer">
+            Alitu hub
+          </a>
+          <a href={brand.sources.magazine} target="_blank" rel="noreferrer">
+            WPM
+          </a>
+        </p>
+      </div>
 
       <fieldset className="fx">
         <legend>Notes / transcript</legend>
@@ -131,12 +158,14 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
       </fieldset>
 
       <fieldset className="fx">
-        <legend>Podcast platforms — ready to submit</legend>
-        <p className={`note ${ready ? "" : ""}`}>
-          {ready ? "Ready to submit — every item ticked." : `${doneCount} / ${DISTRIBUTE_ITEMS.length} done`}
+        <legend>Path A checklist — existing show</legend>
+        <p className="note">
+          {ready
+            ? "Required steps done. Spotify video stays optional and does not block publish."
+            : `${requiredChecks} / ${REQUIRED_DISTRIBUTE_ITEMS.length} required · Spotify video is optional`}
         </p>
         <label>
-          RSS URL (stub)
+          Canonical RSS (Alitu — existing catalogue)
           <span className="invite-row">
             <input
               value={rssUrl}
@@ -152,9 +181,35 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
             </button>
           </span>
         </label>
+        <p className="hint">
+          Live Alitu feed for this show. Only change it if the host moves — then 301 the old URL and
+          import episodes with preserved GUIDs. Never paste this into a “create new podcast” form.
+        </p>
+        <ul className="outlet-cards">
+          <li>
+            <strong>1. Alitu (canonical)</strong>
+            <span>Export the WAV, publish in Alitu. Spotify + Apple follow the existing feed.</span>
+          </li>
+          <li>
+            <strong>2–3. YouTube long + Shorts</strong>
+            <span>16:9 handoff below; 9:16 from the Clips tab. Video is the gap RSS cannot fill.</span>
+          </li>
+          <li>
+            <strong>4. IG / TikTok / LinkedIn / X</strong>
+            <span>Vertical clips + captions on the Clips tab. Auto-post is connect-later.</span>
+          </li>
+          <li>
+            <strong>5. WPM site / newsletter</strong>
+            <span>Link stub when the cut is live. Not a CMS publish.</span>
+          </li>
+          <li>
+            <strong>6. Spotify video</strong>
+            <span>Later / optional (API, not classic RSS). Do not block the episode on this.</span>
+          </li>
+        </ul>
         <ul className="checklist">
           {DISTRIBUTE_ITEMS.map((item) => (
-            <li key={item.id}>
+            <li key={item.id} className={item.optional ? "optional-check" : undefined}>
               <label className="check">
                 <input
                   type="checkbox"
@@ -167,13 +222,14 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
                 />
                 <span>
                   {item.label}
+                  {item.optional ? <em className="optional-tag">optional</em> : null}
                   <small>
                     {item.hint}
                     {item.href ? (
                       <>
                         {" "}
                         <a href={item.href} target="_blank" rel="noreferrer">
-                          Submit docs
+                          {item.linkLabel || "Open"}
                         </a>
                       </>
                     ) : null}
@@ -244,14 +300,15 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
         </div>
         <p className="hint">
           Renders a branded 16:9 WebM (audio + slate, first 12s), or a labeled PNG slate if the
-          browser cannot encode video. Export WAV from Clean / edit for the full master.
+          browser cannot encode video. Export WAV from Clean / edit for the full master. Spotify
+          video is later / optional and does not block this episode.
         </p>
       </fieldset>
       {note ? <p className="note">{note}</p> : null}
       {onNextClips ? (
         <div className="actions tight">
-          <button className="btn" type="button" onClick={onNextClips}>
-            Next: Clips
+          <button className="btn primary" type="button" onClick={onNextClips}>
+            Clips — export verticals
           </button>
         </div>
       ) : null}

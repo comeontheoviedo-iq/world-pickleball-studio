@@ -151,10 +151,11 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
         flags.noiseReduction ? "noise reduction (high-pass + gate)" : null,
         flags.voiceEnhance ? "voice enhance (presence EQ + compressor)" : null,
         flags.breathRemoval ? "breath ducking" : null,
-        intro ? "placeholder intro sting" : null,
-        outro ? "placeholder outro sting" : null,
+        intro ? "intro sting" : null,
+        outro ? "outro sting" : null,
       ].filter(Boolean);
-      setNote(`Exported WAV with ${parts.length ? parts.join(", ") : "trim only"}.`);
+      setNote(`Exported WAV with ${parts.length ? parts.join(", ") : "trim only"}. Next: export vertical clips.`);
+      goTab("clips");
     } catch (err) {
       setNote(err instanceof Error ? err.message : "Export failed");
     } finally {
@@ -184,13 +185,18 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
           <button className={tab === "edit" ? "tab on" : "tab"} onClick={() => goTab("edit")}>
             Clean / edit
           </button>
-          <button className={tab === "seo" ? "tab on" : "tab"} onClick={() => goTab("seo")}>
-            SEO + distribute
-          </button>
           <button className={tab === "clips" ? "tab on" : "tab"} onClick={() => goTab("clips")}>
             Clips
           </button>
+          <button className={tab === "seo" ? "tab on" : "tab"} onClick={() => goTab("seo")}>
+            SEO + distribute
+          </button>
         </div>
+        <ol className="workspace-steps">
+          <li className={tab === "edit" ? "on" : ""}>1. Clean the take</li>
+          <li className={tab === "clips" ? "on" : ""}>2. Export verticals</li>
+          <li className={tab === "seo" ? "on" : ""}>3. SEO + existing catalogue</li>
+        </ol>
       </header>
 
       {tab === "draft" ? (
@@ -225,8 +231,8 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
               />
             </label>
             <p className="hint">
-              Draft stays in this browser. Generate listing copy on SEO + distribute, then cut
-              vertical clips on the Clips tab.
+              Draft stays in this browser. Clean the take, then export vertical clips — SEO + the
+              existing catalogue is the last pass.
             </p>
           </div>
         </section>
@@ -299,11 +305,17 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
             <button className="btn primary" onClick={() => void exportWav()} disabled={!buffer || busy}>
               {busy ? "Rendering…" : "Export cleaned WAV"}
             </button>
+            <button className="btn primary" type="button" onClick={() => goTab("clips")}>
+              Next: export verticals
+            </button>
             <button className="btn" type="button" onClick={() => goTab("seo")}>
-              Next: SEO + distribute
+              SEO + distribute
             </button>
           </div>
-          {note ? <p className="note">{note}</p> : null}
+          <p className="hint">
+            After Stop recording you land here. Export the WAV (or skip) then go to Clips — that is
+            the default post-session path.
+          </p>
         </section>
       ) : tab === "seo" ? (
         <SeoDistributePanel
@@ -321,6 +333,7 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
           onSave={(patch) => saveEpisode({ ...episode, ...patch })}
         />
       )}
+      {note ? <p className="note">{note}</p> : null}
     </div>
   );
 }

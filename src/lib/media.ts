@@ -88,7 +88,7 @@ export function createPlaceholderCameraStream(
     ctx.fillText(label, 480, 340);
     ctx.fillStyle = "rgba(244,239,227,0.55)";
     ctx.font = "400 14px Outfit, sans-serif";
-    ctx.fillText("Camera placeholder", 480, 368);
+    ctx.fillText("Camera stand-in", 480, 368);
 
     requestAnimationFrame(draw);
   };

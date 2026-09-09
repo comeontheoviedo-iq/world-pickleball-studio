@@ -45,7 +45,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <img src={brand.logo.src} alt="" width={28} height={28} />
               <span>{brand.shortName}</span>
             </Link>
-            <span className="topbar-kit">kit {brand.kitVersion}</span>
+            <span className="topbar-kit">{brand.showName}</span>
           </nav>
           {children}
         </div>

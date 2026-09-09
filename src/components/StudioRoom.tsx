@@ -4,8 +4,14 @@ import { brand } from "@brand";
 import { VirtualSet } from "@/components/VirtualSet";
 import { StudioChromePanel } from "@/components/StudioChromePanel";
 import { mixMediaStreams } from "@/lib/audio-engine";
+import { HOST_SLOT } from "@/lib/layouts";
 import { createEpisode, saveAudioBlob, upsertEpisode } from "@/lib/storage";
-import { defaultChrome, mergeChrome, type StudioChrome } from "@/lib/studio-chrome";
+import {
+  defaultChrome,
+  mergeChrome,
+  type StudioChrome,
+  type StudioChromePatch,
+} from "@/lib/studio-chrome";
 import { useStudioSession } from "@/lib/useStudioSession";
 import { copyText } from "@/lib/youtube-handoff";
 import { useRouter } from "next/navigation";
@@ -22,8 +28,8 @@ function chromeStorageKey(sessionId: string) {
 
 function initialChrome(sessionId: string, role: "host" | "guest", displayName: string): StudioChrome {
   const base = defaultChrome();
-  if (role === "host") base.hostName = displayName || base.hostName;
-  else base.guestName = displayName || base.guestName;
+  if (role === "host") base.cards[HOST_SLOT].name = displayName || base.cards[HOST_SLOT].name;
+  else base.cards[1].name = displayName || base.cards[1].name;
   if (typeof window === "undefined") return base;
   try {
     const raw = sessionStorage.getItem(chromeStorageKey(sessionId));
@@ -32,18 +38,6 @@ function initialChrome(sessionId: string, role: "host" | "guest", displayName: s
     /* ignore */
   }
   return base;
-}
-
-function guestStatusLabel(
-  status: "waiting" | "connected" | "disconnected",
-  name: string | null,
-  connected: boolean,
-) {
-  if (status === "connected" || connected) {
-    return name ? `On set — ${name}` : "On set";
-  }
-  if (status === "disconnected") return "Disconnected — they can rejoin the same invite";
-  return "Waiting for guest";
 }
 
 function signalLabel(state: string) {
@@ -64,7 +58,7 @@ export function StudioRoom({ sessionId, role }: Props) {
           <p className="eyebrow">Guest invite</p>
           <h1>Step onto the set</h1>
           <p className="lede">
-            You will appear next to Chris Beaumont on The World Pickleball Podcast set.
+            You will appear on The World Pickleball Podcast set with Chris Beaumont.
             Allow camera and mic if prompted. If either is blocked, a branded stand-in fills your frame — you can retry from the dock.
           </p>
           <label>
@@ -147,7 +141,10 @@ function LiveStudio({
     const t = window.setTimeout(() => {
       const snap = chromeRef.current;
       if (role === "guest") {
-        send({ guestName: displayName, guestSetId: snap.guestSetId });
+        send({
+          slotCard: { slot: session.mySlot, name: displayName },
+          slotSet: { slot: session.mySlot, id: snap.setBySlot[session.mySlot] },
+        });
         return;
       }
       if (seeded.current) return;
@@ -155,9 +152,9 @@ function LiveStudio({
       send(snap);
     }, 250);
     return () => window.clearTimeout(t);
-  }, [session.signalState, session.sendChrome, role, displayName]);
+  }, [session.signalState, session.sendChrome, session.mySlot, role, displayName]);
 
-  function patchChrome(patch: Partial<StudioChrome>) {
+  function patchChrome(patch: StudioChromePatch) {
     setChrome((prev) => {
       const next = mergeChrome(prev, patch);
       try {
@@ -179,9 +176,11 @@ function LiveStudio({
   function startRecording() {
     setRecError(null);
     setSavedEpisodeId(null);
-    const streams = [session.localStream, session.remoteStream].filter(Boolean) as MediaStream[];
+    const streams = [session.localStream, ...session.peers.map((p) => p.stream)].filter(
+      Boolean,
+    ) as MediaStream[];
     if (streams.length === 0) {
-      setRecError("No audio yet — allow mic or wait for the placeholder bed, then Start recording again.");
+      setRecError("No audio yet — allow mic or wait for the stand-in bed, then Start recording again.");
       return;
     }
     const mixed = mixMediaStreams(streams);
@@ -228,6 +227,7 @@ function LiveStudio({
       sessionId,
       source: blob ? "recording" : "demo",
       audioKey: blob ? `ep-${episodeId}` : null,
+      rssUrl: brand.distribute.rssStub,
     });
 
     if (blob && episode.audioKey) {
@@ -279,22 +279,22 @@ function LiveStudio({
     router.push("/");
   }
 
-  const guestPresent = session.peerStatus === "connected" || session.peerConnected;
   const localCameraOn = session.hasCamera ? session.cameraOn : true;
+  const presentCount = 1 + session.peers.length;
+  const guestList = session.peers.filter((p) => p.slot !== HOST_SLOT || role !== "host");
 
   return (
     <div className="studio">
       <VirtualSet
         localStream={session.localStream}
-        remoteStream={session.remoteStream}
+        peers={session.peers}
         role={role}
+        mySlot={session.mySlot}
         chrome={chrome}
         live={recording}
-        guestPresent={guestPresent}
         localMuted={session.micMuted}
         localCameraOn={localCameraOn}
-        remoteMuted={session.peerMedia.muted}
-        remoteCameraOn={session.peerMedia.cameraOn}
+        localName={displayName}
         usingPlaceholder={session.usingPlaceholder}
       />
 
@@ -313,8 +313,13 @@ function LiveStudio({
             <span>{recording ? "Recording this take" : "Set is on standby"}</span>
           </p>
           <p>
-            <strong>Guest</strong>
-            <span>{guestStatusLabel(session.peerStatus, session.peerName, session.peerConnected)}</span>
+            <strong>On set</strong>
+            <span>
+              {presentCount} / 5
+              {guestList.length === 0
+                ? " — waiting for guests"
+                : ` — ${guestList.map((g) => g.name || "Guest").join(", ")}`}
+            </span>
           </p>
         </div>
 
@@ -349,14 +354,14 @@ function LiveStudio({
         {role === "host" ? (
           <>
             <div className="invite-block">
-              <p className="picker-label">Invite guest</p>
+              <p className="picker-label">Invite guests (up to 4)</p>
               <div className="invite-row">
                 <input readOnly value={inviteUrl} aria-label="Guest invite link" />
                 <button className={copied ? "btn primary" : "btn"} type="button" onClick={() => void copyInvite()}>
                   {copied ? "Copied" : "Copy link"}
                 </button>
               </div>
-              <p className="hint">Open in a second tab or window on port 3010.</p>
+              <p className="hint">Open in more tabs or phones on port 3010. Layout reflows as they join.</p>
             </div>
 
             <div className="actions tight">
@@ -375,28 +380,44 @@ function LiveStudio({
             </div>
             {savedEpisodeId && !recording ? (
               <p className="note">
-                Take saved.{" "}
+                Take saved. Next: clean it, then export vertical clips.{" "}
                 <a className="btn primary inline" href={`/episode/${savedEpisodeId}?tab=edit`}>
-                  Open in clean/edit
+                  Open clean / edit
                 </a>
               </p>
             ) : (
-              <p className="hint">Stop recording saves the take and opens Clean / edit.</p>
+              <p className="hint">
+                Stop recording saves the take and opens Clean / edit. After the WAV, the default
+                next step is <strong>Clips → export verticals</strong>.
+              </p>
             )}
 
-            <StudioChromePanel role={role} chrome={chrome} onPatch={patchChrome} />
+            <StudioChromePanel
+              role={role}
+              mySlot={session.mySlot}
+              chrome={chrome}
+              presentCount={presentCount}
+              onPatch={patchChrome}
+            />
           </>
         ) : (
           <>
             <p className="hint">
-              Shared chrome (ticker, sponsors, name cards) follows the host. Pick your set below; the host can also set it.
+              Shared chrome (ticker, sponsors, name cards, layout) follows the host. Pick your
+              backdrop below — or tap Apply to all so everyone shares the same studio.
             </p>
             <div className="actions tight">
               <button className="btn" type="button" onClick={() => void leaveSession()}>
                 Leave session
               </button>
             </div>
-            <StudioChromePanel role={role} chrome={chrome} onPatch={patchChrome} />
+            <StudioChromePanel
+              role={role}
+              mySlot={session.mySlot}
+              chrome={chrome}
+              presentCount={presentCount}
+              onPatch={patchChrome}
+            />
           </>
         )}
       </aside>

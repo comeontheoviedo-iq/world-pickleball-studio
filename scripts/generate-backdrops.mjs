@@ -514,7 +514,7 @@ if (missingLooks) {
   writeFileSync(
     join(stage, "README.txt"),
     "World Pickleball Studio — camera looks\n\n" +
-      "Add these JPGs in Zoom (Settings → Background & Effects), macOS Continuity Camera, or your cam app.\n" +
+      "Add these JPGs in Zoom (Settings → Background & Effects), macOS Continuity Camera, Windows Camera, or your cam app.\n" +
       "Then join Studio with Camera background = Off so the native keyed camera comes through.\n",
   );
   for (const [id, name] of Object.entries(lookNames)) {

@@ -25,7 +25,7 @@ Shipped on top of the slice 1 pipeline:
 2. **Backdrop pack** — 10 founder-studio looks under `/public/brand/backdrops/` (square masters that crop for **laptop 16:9** and **phone 9:16**). Default is **Founder loft** for everyone. Per-seat select + **Apply to all**.
 3. **Layouts 1–5** — solo, 1+1, 1+2, 4-up, 5-up. **Auto-reflow** as guests join/leave (host + 4 guests max). Pin a layout to keep empty seats.
 4. **Clips UX** — after Stop you still clean the take; the default next step is **Export verticals** (tab order + WAV export jumps to Clips).
-5. **Distribution Path A** — WPS records/exports only. Publish audio to **Alitu** for the existing Spotify/Apple show. **Never create a new podcast.**
+5. **Distribution Path A** — WPS records/exports only. Keep **Alitu as RSS host** for the existing Spotify/Apple catalogue. **Never create a new show.** Per-episode checklist: (1) export audio → publish to Alitu, (2) YouTube long, (3) YouTube Shorts, (4) IG/TikTok/LinkedIn/X, (5) WPM site/newsletter stub, (6) Spotify video later/optional and does not block.
 
 ## First dry run
 
@@ -93,6 +93,15 @@ Kit version `wpp-v2` in `brand.config.ts` plus `/public/brand`. Product name **W
 Listings (existing show only): [Apple](https://podcasts.apple.com/podcast/id1807059798) · [Spotify](https://open.spotify.com/show/2YxXH3gi7xrMtveIKOxHa7) · [Alitu](https://worldpickleballpodcast.alitu.com/) · RSS `https://feeds.alitu.com/30881321` · [World Pickleball Magazine](https://www.worldpickleballmagazine.com).
 
 **Catalogue continuity:** keep this RSS / Alitu host. If the host ever moves, 301 redirect the feed URL and import episodes with preserved GUIDs — **never resubmit as a new show**.
+
+**Path A checklist (SEO + distribute tab)**
+
+1. Export cleaned WAV → **Publish to Alitu** (canonical RSS; Spotify + Apple follow the existing feed).
+2. **YouTube** full-episode upload handoff (video gap — not RSS).
+3. **YouTube Shorts** / vertical clips from the Clips tab.
+4. Social clips: IG / TikTok / LinkedIn / X.
+5. WPM site / newsletter link stub.
+6. Spotify **video** = later / optional (API, not classic RSS) — does not block publish.
 
 ## Studio chrome
 

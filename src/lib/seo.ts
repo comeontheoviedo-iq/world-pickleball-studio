@@ -180,53 +180,60 @@ export async function generateSeoCopy(input: SeoInput): Promise<SeoCopy> {
   }
 }
 
-export const DISTRIBUTE_ITEMS = [
+export type DistributeItem = {
+  id: string;
+  label: string;
+  hint: string;
+  href: string | null;
+  linkLabel: string | null;
+  optional?: boolean;
+};
+
+/** Path A — WPS records/exports only. Alitu remains the RSS host. Spotify video does not block. */
+export const DISTRIBUTE_ITEMS: readonly DistributeItem[] = [
   {
     id: "alitu",
-    label: "Publish audio to Alitu (existing show)",
-    hint: "Canonical RSS host. Spotify + Apple update from this feed — never create a new podcast.",
+    label: "1. Export audio → Publish to Alitu",
+    hint: "Canonical RSS for the existing show. Spotify + Apple follow this feed automatically — never create a new podcast.",
     href: brand.distribute.alituPublish,
-  },
-  {
-    id: "rss",
-    label: "Confirm the existing Alitu RSS",
-    hint: brand.distribute.continuity,
-    href: brand.distribute.rssStub,
-  },
-  {
-    id: "directories",
-    label: "Spotify + Apple — existing catalogue only",
-    hint: `Spotify show ${brand.sources.spotifyShowId} · Apple id ${brand.sources.appleId}. Update this listing — do not submit a new show.`,
-    href: brand.sources.spotify,
+    linkLabel: "Open Alitu hub",
   },
   {
     id: "youtube-long",
-    label: "YouTube full episode (video gap)",
-    hint: "Render the 16:9 handoff below and upload in YouTube Studio. Not RSS.",
+    label: "2. YouTube full episode (video gap)",
+    hint: "RSS cannot carry the video. Render the 16:9 handoff below and upload in YouTube Studio.",
     href: brand.distribute.youtubeUpload,
+    linkLabel: "YouTube Studio upload",
   },
   {
     id: "youtube-shorts",
-    label: "YouTube Shorts / vertical clips",
+    label: "3. YouTube Shorts / vertical clips",
     hint: "Export verticals on the Clips tab, then upload as Shorts.",
     href: brand.distribute.youtubeShorts,
+    linkLabel: "YouTube Shorts",
   },
   {
     id: "social",
-    label: "Social clips: IG / TikTok / LinkedIn / X",
-    hint: "Manual syndicate from Clips. Auto-post stays connect-later.",
-    href: null as string | null,
+    label: "4. Social clips: IG / TikTok / LinkedIn / X",
+    hint: "Manual syndicate from the Clips tab. Auto-post stays connect-later.",
+    href: null,
+    linkLabel: null,
   },
   {
     id: "wpm",
-    label: "WPM site / newsletter link",
-    hint: "Paste the live episode URL into World Pickleball Magazine or the newsletter.",
+    label: "5. WPM site / newsletter link",
+    hint: "Stub — paste the live episode URL into World Pickleball Magazine or the newsletter. Not a CMS publish.",
     href: brand.distribute.wpmSite,
+    linkLabel: "WPM site",
   },
   {
     id: "spotify-video",
-    label: "Spotify video (optional, later)",
-    hint: "Not classic RSS — do not block the episode on this.",
+    label: "6. Spotify video (later / optional)",
+    hint: "Not classic RSS — a later API. Do not block the episode on this.",
     href: brand.sources.spotify,
+    linkLabel: "Spotify show",
+    optional: true,
   },
 ] as const;
+
+export const REQUIRED_DISTRIBUTE_ITEMS = DISTRIBUTE_ITEMS.filter((i) => !i.optional);

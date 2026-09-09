@@ -1099,6 +1099,23 @@ label {
   margin-bottom: 1rem;
 }
 
+.optional-tag {
+  margin-left: 0.45rem;
+  font-style: normal;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mist, #C9C4E3);
+  border: 1px solid rgba(244, 239, 227, 0.2);
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
+  vertical-align: middle;
+}
+
+.optional-check {
+  opacity: 0.88;
+}
+
 .clips-panel .lede {
   margin-top: 0;
 }

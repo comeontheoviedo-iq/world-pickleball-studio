@@ -2,7 +2,7 @@
 
 import { brand } from "@brand";
 import { generateSeoCopy } from "@/lib/seo";
-import { DISTRIBUTE_ITEMS } from "@/lib/seo";
+import { DISTRIBUTE_ITEMS, REQUIRED_DISTRIBUTE_ITEMS } from "@/lib/seo";
 import { copyText, downloadBlob, renderYoutubeHandoff } from "@/lib/youtube-handoff";
 import type { Episode } from "@/lib/storage";
 import { useState } from "react";
@@ -21,8 +21,8 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
   const [note, setNote] = useState<string | null>(null);
   const rssUrl = episode.rssUrl || brand.distribute.rssStub;
   const checks = episode.distributeChecks || {};
-  const doneCount = DISTRIBUTE_ITEMS.filter((i) => checks[i.id]).length;
-  const ready = doneCount === DISTRIBUTE_ITEMS.length;
+  const requiredChecks = REQUIRED_DISTRIBUTE_ITEMS.filter((i) => checks[i.id]).length;
+  const ready = requiredChecks === REQUIRED_DISTRIBUTE_ITEMS.length;
 
   async function copyField(key: string, text: string) {
     await copyText(text);
@@ -85,16 +85,19 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
   return (
     <section className="seo-distribute">
       <p className="lede">
-        Listing copy for the <strong>existing</strong> World Pickleball Podcast. Publish audio to
-        Alitu — Spotify and Apple follow that RSS. Do not create a new show.
+        World Pickleball Studio records and exports only. Keep <strong>Alitu as the RSS host</strong>{" "}
+        for the existing Spotify / Apple catalogue. <strong>Never create a new show.</strong>
       </p>
 
       <div className="catalogue-banner">
         <p className="eyebrow">Existing catalogue</p>
         <h2>{brand.showName}</h2>
         <p>
-          Spotify <code>{brand.sources.spotifyShowId}</code> · Apple{" "}
-          <code>{brand.sources.appleId}</code> · RSS host {brand.distribute.rssHost}
+          Spotify <code>{brand.sources.spotifyShowId}</code> · Apple Podcasts{" "}
+          <code>{brand.sources.appleId}</code> · Alitu{" "}
+          <a href={brand.sources.alitu} target="_blank" rel="noreferrer">
+            worldpickleballpodcast.alitu.com
+          </a>
         </p>
         <p className="hint">{brand.distribute.continuity}</p>
         <p className="outlet-row">
@@ -155,9 +158,11 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
       </fieldset>
 
       <fieldset className="fx">
-        <legend>Syndication checklist — existing show</legend>
-        <p className={`note ${ready ? "" : ""}`}>
-          {ready ? "Ready — every outlet ticked." : `${doneCount} / ${DISTRIBUTE_ITEMS.length} done`}
+        <legend>Path A checklist — existing show</legend>
+        <p className="note">
+          {ready
+            ? "Required steps done. Spotify video stays optional and does not block publish."
+            : `${requiredChecks} / ${REQUIRED_DISTRIBUTE_ITEMS.length} required · Spotify video is optional`}
         </p>
         <label>
           Canonical RSS (Alitu — existing catalogue)
@@ -177,30 +182,34 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
           </span>
         </label>
         <p className="hint">
-          Default is the live Alitu feed. Only change this if the host moves — then 301 the old URL
-          and import episodes. Never paste this into a “create new podcast” form.
+          Live Alitu feed for this show. Only change it if the host moves — then 301 the old URL and
+          import episodes with preserved GUIDs. Never paste this into a “create new podcast” form.
         </p>
         <ul className="outlet-cards">
           <li>
-            <strong>Spotify + Apple</strong>
-            <span>Via the existing Alitu RSS. Directories already attached to this show.</span>
+            <strong>1. Alitu (canonical)</strong>
+            <span>Export the WAV, publish in Alitu. Spotify + Apple follow the existing feed.</span>
           </li>
           <li>
-            <strong>YouTube long + Shorts</strong>
+            <strong>2–3. YouTube long + Shorts</strong>
             <span>16:9 handoff below; 9:16 from the Clips tab. Video is the gap RSS cannot fill.</span>
           </li>
           <li>
-            <strong>IG / TikTok / LinkedIn / X</strong>
+            <strong>4. IG / TikTok / LinkedIn / X</strong>
             <span>Vertical clips + captions on the Clips tab. Auto-post is connect-later.</span>
           </li>
           <li>
-            <strong>WPM site / newsletter</strong>
-            <span>Link the live episode when the cut is up. Stub, not a CMS publish.</span>
+            <strong>5. WPM site / newsletter</strong>
+            <span>Link stub when the cut is live. Not a CMS publish.</span>
+          </li>
+          <li>
+            <strong>6. Spotify video</strong>
+            <span>Later / optional (API, not classic RSS). Do not block the episode on this.</span>
           </li>
         </ul>
         <ul className="checklist">
           {DISTRIBUTE_ITEMS.map((item) => (
-            <li key={item.id}>
+            <li key={item.id} className={item.optional ? "optional-check" : undefined}>
               <label className="check">
                 <input
                   type="checkbox"
@@ -213,13 +222,14 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
                 />
                 <span>
                   {item.label}
+                  {item.optional ? <em className="optional-tag">optional</em> : null}
                   <small>
                     {item.hint}
                     {item.href ? (
                       <>
                         {" "}
                         <a href={item.href} target="_blank" rel="noreferrer">
-                          Submit docs
+                          {item.linkLabel || "Open"}
                         </a>
                       </>
                     ) : null}

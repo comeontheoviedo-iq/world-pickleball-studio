@@ -395,6 +395,7 @@ h2 {
 .talent {
   display: flex;
   flex-direction: column;
+  position: relative;
   min-width: 0;
   min-height: 0;
   height: 100%;
@@ -461,7 +462,7 @@ h2 {
 }
 
 .frame-muted {
-  bottom: 0.55rem;
+  bottom: 2.7rem;
   color: var(--live, #FF4D4D);
   border: 1px solid var(--live, #FF4D4D);
 }
@@ -472,10 +473,13 @@ h2 {
   background: linear-gradient(90deg, var(--court, #13016F), var(--court-deep, #0A0147) 70%);
   border-left: 4px solid var(--lime, #FFF500);
   padding: 0.28rem 0.5rem 0.32rem;
-  position: relative;
-  z-index: 2;
-  flex-shrink: 0;
+  position: absolute;
+  left: 0.4rem;
+  right: 0.4rem;
+  bottom: 0.35rem;
+  z-index: 3;
   min-width: 0;
+  pointer-events: none;
 }
 
 .name-card h3,

@@ -89,12 +89,9 @@ export function VirtualBackgroundPanel({
         <p className="note warn" role="status">
           {error || VB_FALLBACK_NO_CAMERA}{" "}
           {needsCamera && mode !== "off" ? (
-            <>
-              Allow camera, then{" "}
-              <button className="btn inline" type="button" onClick={onRetryDevices}>
-                Retry devices
-              </button>
-            </>
+            <button className="btn inline" type="button" onClick={onRetryDevices}>
+              Retry devices
+            </button>
           ) : null}
         </p>
       ) : null}

@@ -49,7 +49,7 @@ export function VirtualBackgroundPanel({
       <legend>Camera background</legend>
       <p className="hint">
         <strong>Recommended:</strong> download the photoreal studio looks, set them in Zoom / macOS
-        Continuity Camera / your cam app (where cutout already works), then join Studio on{" "}
+        Continuity Camera / Windows Camera / your cam app (where cutout already works), then join Studio on{" "}
         <strong>Off</strong> so the keyed camera comes through raw. This is not the set wallpaper
         behind the tiles.
       </p>

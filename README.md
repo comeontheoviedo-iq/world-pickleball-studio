@@ -19,12 +19,12 @@ No accounts, API keys, or `.env` required. Drafts live in **localStorage**; reco
 
 ## Phase 2.1 — camera virtual backgrounds
 
-**Recommended:** download the photoreal studio looks, apply them in Zoom / macOS Continuity Camera / your cam app, then join Studio with Camera background **Off** (raw cam already keyed). In-app Blur / Pick look is experimental.
+**Recommended:** download the photoreal studio looks, apply them in Zoom / macOS Continuity Camera / Windows Camera (or your cam app), then join Studio with Camera background **Off** (raw cam already keyed). In-app Blur / Pick look is experimental.
 
 Zoom-style **camera** backgrounds (not the set wallpaper behind tiles):
 
 1. Producer dock → **Download studio looks** (zip of 18 JPGs with human names).
-2. Set the JPG in Zoom or the OS camera, then keep Studio on **Off**.
+2. Set the JPG in Zoom (Settings → Background & Effects), macOS Continuity Camera, or Windows Camera / your cam app, then keep Studio on **Off**.
 3. Optional: experimental in-app **Blur** / **Pick look** (MediaPipe in the browser — not Zoom-quality in motion).
 4. Guests who tick **Allow host to set my experimental in-app background** can receive **Apply experimental to opted-in guests**.
 5. If the in-app cutout cannot run, Studio stays on Off and a toast explains why.

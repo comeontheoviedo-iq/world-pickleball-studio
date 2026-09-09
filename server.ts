@@ -2,6 +2,8 @@ import { createServer } from "node:http";
 import { parse } from "node:url";
 import next from "next";
 import { Server as SocketIOServer } from "socket.io";
+import { HOST_SLOT, MAX_GUESTS, nextGuestSlot } from "./src/lib/layouts";
+import { defaultChrome, mergeChrome } from "./src/lib/studio-chrome";
 
 const port = parseInt(process.env.PORT || "3010", 10);
 const hostname = process.env.HOSTNAME || "0.0.0.0";
@@ -20,6 +22,7 @@ type JoinPayload = {
 
 type SignalPayload = {
   sessionId: string;
+  to?: string;
   data: unknown;
 };
 
@@ -33,7 +36,42 @@ type MediaPayload = {
   state?: { muted?: boolean; cameraOn?: boolean };
 };
 
-const roomChrome = new Map<string, Record<string, unknown>>();
+const roomChrome = new Map<string, ReturnType<typeof defaultChrome>>();
+
+type IoServer = SocketIOServer;
+
+function usedSlots(io: IoServer, sessionId: string): number[] {
+  const room = io.sockets.adapter.rooms.get(sessionId);
+  const slots: number[] = [];
+  if (!room) return slots;
+  for (const id of room) {
+    const peer = io.sockets.sockets.get(id);
+    if (typeof peer?.data?.slot === "number") slots.push(peer.data.slot);
+  }
+  return slots;
+}
+
+function roster(io: IoServer, sessionId: string) {
+  const room = io.sockets.adapter.rooms.get(sessionId);
+  const peers: { id: string; role: Role; name: string; slot: number }[] = [];
+  if (!room) return peers;
+  for (const id of room) {
+    const peer = io.sockets.sockets.get(id);
+    if (peer?.data?.role) {
+      peers.push({
+        id,
+        role: peer.data.role,
+        name: peer.data.name,
+        slot: typeof peer.data.slot === "number" ? peer.data.slot : HOST_SLOT,
+      });
+    }
+  }
+  return peers.sort((a, b) => a.slot - b.slot);
+}
+
+function emitRoster(io: IoServer, sessionId: string) {
+  io.to(sessionId).emit("roster", { peers: roster(io, sessionId) });
+}
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
@@ -53,8 +91,21 @@ app.prepare().then(() => {
   io.on("connection", (socket) => {
     socket.on("join", ({ sessionId, role, name }: JoinPayload) => {
       if (!sessionId || (role !== "host" && role !== "guest")) return;
+
+      const taken = usedSlots(io, sessionId);
+      let slot: number | null = null;
+      if (role === "host" && !taken.includes(HOST_SLOT)) {
+        slot = HOST_SLOT;
+      } else {
+        slot = nextGuestSlot(taken);
+      }
+      if (slot === null) {
+        socket.emit("room-full", { max: 1 + MAX_GUESTS });
+        return;
+      }
+
       void socket.join(sessionId);
-      socket.data = { sessionId, role, name: name || role };
+      socket.data = { sessionId, role, name: name || role, slot };
 
       const room = io.sockets.adapter.rooms.get(sessionId);
       if (room) {
@@ -66,6 +117,7 @@ app.prepare().then(() => {
               role: peer.data.role,
               name: peer.data.name,
               id: peer.id,
+              slot: peer.data.slot,
             });
           }
         }
@@ -75,21 +127,27 @@ app.prepare().then(() => {
         role,
         name: socket.data.name,
         id: socket.id,
+        slot,
       });
 
       const chrome = roomChrome.get(sessionId);
       if (chrome) socket.emit("chrome", chrome);
+      emitRoster(io, sessionId);
     });
 
-    socket.on("signal", ({ sessionId, data }: SignalPayload) => {
+    socket.on("signal", ({ sessionId, to, data }: SignalPayload) => {
       if (!sessionId) return;
+      if (to) {
+        io.to(to).emit("signal", { from: socket.id, data });
+        return;
+      }
       socket.to(sessionId).emit("signal", { from: socket.id, data });
     });
 
     socket.on("chrome", ({ sessionId, patch }: ChromePayload) => {
       if (!sessionId || !patch || typeof patch !== "object") return;
-      const prev = roomChrome.get(sessionId) ?? {};
-      const next = { ...prev, ...patch };
+      const prev = roomChrome.get(sessionId) ?? defaultChrome();
+      const next = mergeChrome(prev, patch);
       roomChrome.set(sessionId, next);
       io.to(sessionId).emit("chrome", next);
     });
@@ -100,13 +158,15 @@ app.prepare().then(() => {
     });
 
     socket.on("disconnect", () => {
-      const { sessionId, role, name } = socket.data || {};
+      const { sessionId, role, name, slot } = socket.data || {};
       if (sessionId) {
         socket.to(sessionId).emit("peer-left", {
           role,
           name,
           id: socket.id,
+          slot,
         });
+        emitRoster(io, sessionId);
       }
     });
   });

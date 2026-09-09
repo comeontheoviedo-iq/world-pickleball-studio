@@ -1,13 +1,22 @@
 "use client";
 
 import { brand } from "@brand";
+import { LAYOUTS, type LayoutMode } from "@/lib/layouts";
+import {
+  applySetToAll,
+  patchCard,
+  patchSlotSet,
+  resolvedLayoutId,
+  type StudioChrome,
+} from "@/lib/studio-chrome";
 import type { Role } from "@/lib/useStudioSession";
-import type { StudioChrome } from "@/lib/studio-chrome";
 
 type Props = {
   role: Role;
+  mySlot: number;
   chrome: StudioChrome;
-  onPatch: (patch: Partial<StudioChrome>) => void;
+  presentCount: number;
+  onPatch: (patch: import("@/lib/studio-chrome").StudioChromePatch) => void;
 };
 
 function SetThumbs({
@@ -35,84 +44,134 @@ function SetThumbs({
   );
 }
 
-export function StudioChromePanel({ role, chrome, onPatch }: Props) {
-  const myKey = role === "host" ? "hostSetId" : "guestSetId";
+export function StudioChromePanel({ role, mySlot, chrome, presentCount, onPatch }: Props) {
+  const liveLayout = resolvedLayoutId(chrome, presentCount);
 
   return (
     <div className="chrome-panel">
-      <fieldset className="chrome-block">
-        <legend>Set backgrounds</legend>
+      {role === "host" ? (
+        <fieldset className="chrome-block">
+          <legend>Layouts 1–5</legend>
+          <p className="hint">
+            Auto-reflow follows who is on set (solo → 1+1 → 1+2 → 4-up → 5-up). Pin a layout to
+            keep empty seats until they fill.
+          </p>
+          <div className="layout-picker" role="list">
+            <button
+              type="button"
+              className={chrome.layoutId === "auto" ? "layout-chip on" : "layout-chip"}
+              onClick={() => onPatch({ layoutId: "auto" })}
+            >
+              Auto
+              <small>{LAYOUTS.find((l) => l.id === liveLayout)?.name}</small>
+            </button>
+            {LAYOUTS.map((layout) => (
+              <button
+                key={layout.id}
+                type="button"
+                className={chrome.layoutId === layout.id ? "layout-chip on" : "layout-chip"}
+                onClick={() => onPatch({ layoutId: layout.id as LayoutMode })}
+                title={layout.label}
+              >
+                {layout.name}
+                <small>{layout.seats} seat{layout.seats === 1 ? "" : "s"}</small>
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      ) : (
         <p className="hint">
-          Both default to Indigo court so you share one studio. Same palette on every look.
+          Layout follows the host and reflows when people join or leave. You are in a{" "}
+          {LAYOUTS.find((l) => l.id === liveLayout)?.name} frame.
         </p>
-        <p className="picker-label">{role === "host" ? "Host set" : "Your set"}</p>
-        <SetThumbs value={chrome[myKey]} onChange={(id) => onPatch({ [myKey]: id })} />
+      )}
+
+      <fieldset className="chrome-block">
+        <legend>Studio backdrops</legend>
+        <p className="hint">
+          Ten founder-studio looks. Laptop (16:9) and phone (9:16) crop the same master. Everyone
+          starts on Founder loft — pick a variant or apply one studio to all.
+        </p>
+        <p className="picker-label">{role === "host" ? "Your backdrop" : "Your backdrop"}</p>
+        <SetThumbs
+          value={chrome.setBySlot[mySlot] || chrome.setBySlot[0]}
+          onChange={(id) => onPatch(patchSlotSet(chrome, mySlot, id))}
+        />
+        <div className="actions tight backdrop-actions">
+          <button
+            className="btn primary"
+            type="button"
+            onClick={() => onPatch(applySetToAll(chrome, chrome.setBySlot[mySlot] || brand.sets[0].id))}
+          >
+            Apply to all
+          </button>
+        </div>
         {role === "host" ? (
-          <>
-            <p className="picker-label">Guest set</p>
-            <SetThumbs
-              value={chrome.guestSetId}
-              onChange={(id) => onPatch({ guestSetId: id })}
-            />
-          </>
+          <div className="slot-set-row">
+            {chrome.cards.map((card, slot) =>
+              slot === mySlot ? null : (
+                <label key={slot}>
+                  Seat {slot}
+                  {card.name ? ` · ${card.name}` : ""}
+                  <select
+                    value={chrome.setBySlot[slot] || brand.sets[0].id}
+                    onChange={(e) => onPatch(patchSlotSet(chrome, slot, e.target.value))}
+                  >
+                    {brand.sets.map((set) => (
+                      <option key={set.id} value={set.id}>
+                        {set.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ),
+            )}
+          </div>
         ) : null}
       </fieldset>
 
       <fieldset className="chrome-block">
         <legend>Name cards</legend>
         <div className="lt-grid">
-          <label>
-            Host name
-            <input
-              value={chrome.hostName}
-              onChange={(e) => onPatch({ hostName: e.target.value })}
-              disabled={role === "guest"}
-            />
-          </label>
-          <label>
-            Host subtitle
-            <input
-              value={chrome.hostTitle}
-              onChange={(e) => onPatch({ hostTitle: e.target.value })}
-              disabled={role === "guest"}
-            />
-          </label>
-          <label>
-            Host handle
-            <input
-              value={chrome.hostHandle}
-              onChange={(e) => onPatch({ hostHandle: e.target.value })}
-              disabled={role === "guest"}
-              placeholder="@optional"
-            />
-          </label>
-          <label>
-            Guest name
-            <input
-              value={chrome.guestName}
-              onChange={(e) => onPatch({ guestName: e.target.value })}
-            />
-          </label>
-          <label>
-            Guest subtitle
-            <input
-              value={chrome.guestTitle}
-              onChange={(e) => onPatch({ guestTitle: e.target.value })}
-            />
-          </label>
-          <label>
-            Guest handle
-            <input
-              value={chrome.guestHandle}
-              onChange={(e) => onPatch({ guestHandle: e.target.value })}
-              placeholder="@optional"
-            />
-          </label>
+          {chrome.cards.map((card, slot) => {
+            if (role === "guest" && slot !== mySlot) return null;
+            const locked = role === "guest" && slot !== mySlot;
+            const label = slot === 0 ? "Host" : `Guest ${slot}`;
+            return (
+              <div key={slot} className="card-edit">
+                <label>
+                  {label} name
+                  <input
+                    value={card.name}
+                    onChange={(e) => onPatch(patchCard(chrome, slot, { name: e.target.value }))}
+                    disabled={locked}
+                  />
+                </label>
+                <label>
+                  {label} subtitle
+                  <input
+                    value={card.title}
+                    onChange={(e) => onPatch(patchCard(chrome, slot, { title: e.target.value }))}
+                    disabled={locked}
+                  />
+                </label>
+                <label>
+                  {label} handle
+                  <input
+                    value={card.handle}
+                    onChange={(e) => onPatch(patchCard(chrome, slot, { handle: e.target.value }))}
+                    disabled={locked}
+                    placeholder="@optional"
+                  />
+                </label>
+              </div>
+            );
+          })}
         </div>
         {role === "guest" ? (
-          <p className="hint">You can edit your card. The host can edit it too.</p>
+          <p className="hint">You can edit your card. The host can edit every seat.</p>
         ) : (
-          <p className="hint">Host can edit both cards, including the guest’s.</p>
+          <p className="hint">Host can edit every card. Extra seats wait until a guest joins.</p>
         )}
       </fieldset>
 
@@ -205,7 +264,7 @@ export function StudioChromePanel({ role, chrome, onPatch }: Props) {
                 />
               </label>
             ) : (
-              <p className="hint">Placeholder overlay for a later intro/outro bumper package.</p>
+              <p className="hint">Overlay for a later intro/outro bumper package.</p>
             )}
           </fieldset>
         </>

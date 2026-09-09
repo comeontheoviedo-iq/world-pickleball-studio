@@ -1,14 +1,15 @@
 /**
  * Brand kit — World Pickleball Studio × The World Pickleball Podcast / WPM
  *
- * Assets sourced from public show art (Apple/Alitu/Spotify cover) and the
- * World Pickleball Magazine site wordmark (kit file; set lockup uses
- * square show art + text only — no landscape WPM duplicate). Swap files
- * under /public/brand and tokens here; do not scatter hex values in components.
+ * Square show art + wordmark on the set (no landscape WPM duplicate).
+ * Swap files under /public/brand and tokens here; do not scatter hex in components.
+ *
+ * Catalogue: existing World Pickleball Podcast only. Never create a new show.
+ * RSS host is Alitu (`feeds.alitu.com/30881321`). Spotify + Apple follow that feed.
  */
 export const brand = {
   placeholder: false,
-  kitVersion: "wpp-v1",
+  kitVersion: "wpp-v2",
   name: "World Pickleball Studio",
   shortName: "WPP",
   tagline: "Chris Beaumont and Gordon Watson on the world game of pickleball.",
@@ -41,39 +42,79 @@ export const brand = {
     alt: "World Pickleball Magazine wordmark",
   },
   set: {
-    backgroundSrc: "/brand/sets/court.svg",
-    backgroundLabel: "The World Pickleball Podcast set — indigo court + yellow accents",
+    backgroundSrc: "/brand/backdrops/loft.svg",
+    backgroundLabel: "Founder loft — shared WPM studio (laptop + phone crop)",
   },
   sets: [
     {
-      id: "court",
-      name: "Indigo court",
-      src: "/brand/sets/court.svg",
-      label: "Default shared studio — pickleball court in WPP indigo",
+      id: "loft",
+      name: "Founder loft",
+      src: "/brand/backdrops/loft.svg",
+      label: "Default shared studio — glass loft, kitchen geometry, WPM wordmark",
+      variant: "shared",
     },
     {
-      id: "night",
-      name: "Night rally",
-      src: "/brand/sets/night.svg",
-      label: "Darker indigo with WPM blue wash",
+      id: "nightglass",
+      name: "Night glass",
+      src: "/brand/backdrops/nightglass.svg",
+      label: "Dark glass, WPM blue orb, neon hairline — guest night look",
+      variant: "guest",
     },
     {
-      id: "magazine",
-      name: "Magazine floor",
-      src: "/brand/sets/magazine.svg",
-      label: "WPM blue-to-indigo editorial floor",
+      id: "kitchen",
+      name: "Court geometry",
+      src: "/brand/backdrops/kitchen.svg",
+      label: "Architectural kitchen lines, not a stock green screen",
+      variant: "shared",
     },
     {
-      id: "spotlight",
-      name: "Yellow spotlight",
-      src: "/brand/sets/spotlight.svg",
-      label: "Hot yellow key light on indigo cyc",
+      id: "editorial",
+      name: "Magazine loft",
+      src: "/brand/backdrops/editorial.svg",
+      label: "WPM editorial columns and blue wash",
+      variant: "guest",
     },
     {
-      id: "desk",
-      name: "Broadcast desk",
-      src: "/brand/sets/desk.svg",
-      label: "Two-window desk wall",
+      id: "neon",
+      name: "Neon cyc",
+      src: "/brand/backdrops/neon.svg",
+      label: "Hot yellow key on indigo cyc",
+      variant: "shared",
+    },
+    {
+      id: "afterhours",
+      name: "After hours",
+      src: "/brand/backdrops/afterhours.svg",
+      label: "Navy pinstripe loft with yellow baseboard",
+      variant: "guest",
+    },
+    {
+      id: "ledwall",
+      name: "Broadcast bay",
+      src: "/brand/backdrops/ledwall.svg",
+      label: "LED glass wall — cool startup control room",
+      variant: "shared",
+    },
+    {
+      id: "dawn",
+      name: "Dawn rally",
+      src: "/brand/backdrops/dawn.svg",
+      label: "Lifted indigo horizon, soft yellow key",
+      variant: "guest",
+    },
+    {
+      id: "frost",
+      name: "Glass court",
+      src: "/brand/backdrops/frost.svg",
+      label: "Frosted glass panels over indigo",
+      variant: "shared",
+    },
+    {
+      id: "pulse",
+      name: "Pulse desk",
+      src: "/brand/backdrops/pulse.svg",
+      label: "Radar rings + broadcast desk bar",
+      variant: "guest",
     },
   ],
   sponsors: {
@@ -93,8 +134,8 @@ export const brand = {
     kicker: "WORLD PICKLEBALL PODCAST",
   },
   introOutro: {
-    introLabel: "Intro sting (placeholder audio)",
-    outroLabel: "Outro sting (placeholder audio)",
+    introLabel: "Intro sting (studio bed)",
+    outroLabel: "Outro sting (studio bed)",
     introDurationMs: 1400,
     outroDurationMs: 1600,
   },
@@ -114,16 +155,27 @@ export const brand = {
   },
   sources: {
     apple: "https://podcasts.apple.com/podcast/id1807059798",
+    appleId: "1807059798",
     spotify: "https://open.spotify.com/show/2YxXH3gi7xrMtveIKOxHa7",
+    spotifyShowId: "2YxXH3gi7xrMtveIKOxHa7",
     alitu: "https://worldpickleballpodcast.alitu.com/",
     magazine: "https://www.worldpickleballmagazine.com",
+    newsletter: "https://www.worldpickleballmagazine.com",
   },
   distribute: {
-    rssStub: "https://worldpickleballpodcast.alitu.com/rss",
+    rssStub: "https://feeds.alitu.com/30881321",
+    rssHost: "Alitu",
+    alituPublish: "https://worldpickleballpodcast.alitu.com/",
     youtubeUpload: "https://studio.youtube.com/channel/upload",
-    appleSubmit: "https://podcasters.apple.com/support/826-submit-a-podcast",
+    youtubeShorts: "https://studio.youtube.com/channel/content",
+    appleShow: "https://podcasts.apple.com/podcast/id1807059798",
+    spotifyShow: "https://open.spotify.com/show/2YxXH3gi7xrMtveIKOxHa7",
+    appleSubmit: "https://podcastsconnect.apple.com/",
     spotifySubmit: "https://podcasters.spotify.com/",
-    googleSubmit: "https://support.google.com/youtube/answer/9472177",
+    googleSubmit: "https://studio.youtube.com/channel/upload",
+    wpmSite: "https://www.worldpickleballmagazine.com",
+    continuity:
+      "Keep this RSS and Alitu host. If the host ever moves, 301 redirect the feed URL and import episodes with preserved GUIDs — never resubmit as a new show.",
   },
   social: {
     showUrl: "https://worldpickleballpodcast.alitu.com/",
@@ -135,3 +187,4 @@ export const brand = {
 } as const;
 
 export type BrandConfig = typeof brand;
+export type BrandSet = (typeof brand.sets)[number];

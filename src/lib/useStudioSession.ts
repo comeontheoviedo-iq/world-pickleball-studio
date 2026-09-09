@@ -3,51 +3,114 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import { ICE_SERVERS, getStudioStream, type PeerMediaState } from "@/lib/media";
-import type { StudioChrome } from "@/lib/studio-chrome";
+import type { StudioChrome, StudioChromePatch } from "@/lib/studio-chrome";
 
 export type Role = "host" | "guest";
 export type SignalState = "connecting" | "ready" | "reconnecting" | "error";
 export type PeerStatus = "waiting" | "connected" | "disconnected";
 
-type PeerJoined = { role: Role; name: string; id: string };
+export type StudioPeer = {
+  id: string;
+  role: Role;
+  name: string;
+  slot: number;
+  stream: MediaStream | null;
+  muted: boolean;
+  cameraOn: boolean;
+};
+
+type PeerJoined = { role: Role; name: string; id: string; slot?: number };
+
+type SignalMessage = { from?: string; data: Record<string, unknown> };
 
 export function useStudioSession(sessionId: string, role: Role, displayName: string) {
-  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const pcsRef = useRef(new Map<string, RTCPeerConnection>());
+  const makingOfferRef = useRef(new Map<string, boolean>());
+  const ignoreOfferRef = useRef(new Map<string, boolean>());
+  const pendingIceRef = useRef(new Map<string, RTCIceCandidateInit[]>());
   const socketRef = useRef<Socket | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
-  const pendingIce = useRef<RTCIceCandidateInit[]>([]);
-  const makingOffer = useRef(false);
+  const selfIdRef = useRef<string | null>(null);
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [peers, setPeers] = useState<StudioPeer[]>([]);
   const [usingPlaceholder, setUsingPlaceholder] = useState(false);
   const [hasCamera, setHasCamera] = useState(false);
   const [hasMic, setHasMic] = useState(false);
   const [permissionNote, setPermissionNote] = useState<string | null>(null);
   const [micMuted, setMicMuted] = useState(false);
   const [cameraOn, setCameraOn] = useState(true);
-  const [peerName, setPeerName] = useState<string | null>(null);
-  const [peerConnected, setPeerConnected] = useState(false);
-  const [peerStatus, setPeerStatus] = useState<PeerStatus>("waiting");
-  const [peerMedia, setPeerMedia] = useState<PeerMediaState>({ muted: false, cameraOn: true });
+  const [mySlot, setMySlot] = useState(role === "host" ? 0 : 1);
   const [signalState, setSignalState] = useState<SignalState>("connecting");
   const [error, setError] = useState<string | null>(null);
+  const [roomFull, setRoomFull] = useState(false);
   const [remoteChrome, setRemoteChrome] = useState<Partial<StudioChrome> | null>(null);
 
-  const emitMedia = useCallback((muted: boolean, camOn: boolean) => {
-    socketRef.current?.emit("media", { sessionId, state: { muted, cameraOn: camOn } });
-  }, [sessionId]);
+  const emitMedia = useCallback(
+    (muted: boolean, camOn: boolean) => {
+      socketRef.current?.emit("media", { sessionId, state: { muted, cameraOn: camOn } });
+    },
+    [sessionId],
+  );
+
+  const upsertPeer = useCallback((patch: Partial<StudioPeer> & Pick<StudioPeer, "id">) => {
+    setPeers((prev) => {
+      const idx = prev.findIndex((p) => p.id === patch.id);
+      if (idx === -1) {
+        const created: StudioPeer = {
+          id: patch.id,
+          role: patch.role === "host" ? "host" : "guest",
+          name: patch.name || "Guest",
+          slot: typeof patch.slot === "number" ? patch.slot : 1,
+          stream: patch.stream ?? null,
+          muted: Boolean(patch.muted),
+          cameraOn: patch.cameraOn !== false,
+        };
+        return [...prev, created].sort((a, b) => a.slot - b.slot);
+      }
+      const next = [...prev];
+      next[idx] = { ...next[idx], ...patch, role: patch.role ?? next[idx].role };
+      return next.sort((a, b) => a.slot - b.slot);
+    });
+  }, []);
+
+  const dropPeer = useCallback((id: string) => {
+    const pc = pcsRef.current.get(id);
+    pc?.close();
+    pcsRef.current.delete(id);
+    makingOfferRef.current.delete(id);
+    ignoreOfferRef.current.delete(id);
+    pendingIceRef.current.delete(id);
+    setPeers((prev) => prev.filter((p) => p.id !== id));
+  }, []);
 
   const attachPeer = useCallback(
-    async (socket: Socket, stream: MediaStream) => {
-      const existing = pcRef.current;
+    (socket: Socket, stream: MediaStream, peer: PeerJoined) => {
+      if (!peer.id || peer.id === socket.id) return;
+      const existing = pcsRef.current.get(peer.id);
       if (existing && existing.connectionState !== "closed" && existing.connectionState !== "failed") {
+        upsertPeer({
+          id: peer.id,
+          role: peer.role,
+          name: peer.name,
+          slot: typeof peer.slot === "number" ? peer.slot : 1,
+        });
         return;
       }
       existing?.close();
+
       const pc = new RTCPeerConnection(ICE_SERVERS);
-      pcRef.current = pc;
-      pendingIce.current = [];
+      pcsRef.current.set(peer.id, pc);
+      pendingIceRef.current.set(peer.id, []);
+      upsertPeer({
+        id: peer.id,
+        role: peer.role,
+        name: peer.name,
+        slot: typeof peer.slot === "number" ? peer.slot : 1,
+        stream: null,
+        muted: false,
+        cameraOn: true,
+      });
 
       for (const track of stream.getTracks()) {
         pc.addTrack(track, stream);
@@ -57,6 +120,7 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
         if (ev.candidate) {
           socket.emit("signal", {
             sessionId,
+            to: peer.id,
             data: { type: "ice", candidate: ev.candidate },
           });
         }
@@ -64,29 +128,90 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
 
       pc.ontrack = (ev) => {
         const [incoming] = ev.streams;
-        if (incoming) setRemoteStream(incoming);
+        if (incoming) upsertPeer({ id: peer.id, stream: incoming });
       };
 
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "connected") {
-          setPeerConnected(true);
-          setPeerStatus("connected");
-        }
-        if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
-          setPeerConnected(false);
-          setPeerStatus((prev) => (prev === "waiting" ? "waiting" : "disconnected"));
+        if (pc.connectionState === "failed") {
+          pc.restartIce();
         }
       };
 
-      if (role === "host") {
-        makingOffer.current = true;
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        socket.emit("signal", { sessionId, data: { type: "offer", sdp: pc.localDescription } });
-        makingOffer.current = false;
+      pc.onnegotiationneeded = async () => {
+        try {
+          makingOfferRef.current.set(peer.id, true);
+          await pc.setLocalDescription(await pc.createOffer());
+          socket.emit("signal", {
+            sessionId,
+            to: peer.id,
+            data: { type: "offer", sdp: pc.localDescription },
+          });
+        } catch (err) {
+          console.warn("negotiation failed", err);
+        } finally {
+          makingOfferRef.current.set(peer.id, false);
+        }
+      };
+    },
+    [sessionId, upsertPeer],
+  );
+
+  const handleSignal = useCallback(
+    async (socket: Socket, msg: SignalMessage) => {
+      const from = msg.from;
+      const data = msg.data;
+      if (!from || !data) return;
+      let pc = pcsRef.current.get(from);
+      if (!pc && localStreamRef.current) {
+        attachPeer(socket, localStreamRef.current, {
+          id: from,
+          role: "guest",
+          name: "Guest",
+          slot: 1,
+        });
+        pc = pcsRef.current.get(from);
+      }
+      if (!pc) return;
+
+      const polite = (socket.id || "") > from;
+
+      if (data.type === "offer") {
+        const desc = data.sdp as RTCSessionDescriptionInit;
+        const makingOffer = makingOfferRef.current.get(from) === true;
+        const offerCollision = makingOffer || pc.signalingState !== "stable";
+        ignoreOfferRef.current.set(from, !polite && offerCollision);
+        if (ignoreOfferRef.current.get(from)) return;
+        await pc.setRemoteDescription(desc);
+        await pc.setLocalDescription(await pc.createAnswer());
+        socket.emit("signal", {
+          sessionId,
+          to: from,
+          data: { type: "answer", sdp: pc.localDescription },
+        });
+        const queued = pendingIceRef.current.get(from) || [];
+        for (const c of queued) await pc.addIceCandidate(c);
+        pendingIceRef.current.set(from, []);
+      } else if (data.type === "answer") {
+        await pc.setRemoteDescription(data.sdp as RTCSessionDescriptionInit);
+        const queued = pendingIceRef.current.get(from) || [];
+        for (const c of queued) await pc.addIceCandidate(c);
+        pendingIceRef.current.set(from, []);
+      } else if (data.type === "ice" && data.candidate) {
+        const cand = data.candidate as RTCIceCandidateInit;
+        if (pc.remoteDescription) {
+          try {
+            await pc.addIceCandidate(cand);
+          } catch (err) {
+            if (!ignoreOfferRef.current.get(from)) throw err;
+          }
+        } else {
+          const queued = pendingIceRef.current.get(from) || [];
+          queued.push(cand);
+          pendingIceRef.current.set(from, queued);
+        }
       }
     },
-    [role, sessionId],
+    [attachPeer, sessionId],
   );
 
   const applyMediaResult = useCallback(
@@ -100,8 +225,7 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
       setPermissionNote(result.note);
       setCameraOn(true);
       setMicMuted(!result.hasMic);
-      const pc = pcRef.current;
-      if (pc) {
+      for (const pc of pcsRef.current.values()) {
         for (const track of result.stream.getTracks()) {
           const sender = pc.getSenders().find((s) => s.track?.kind === track.kind);
           if (sender) await sender.replaceTrack(track);
@@ -132,8 +256,10 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
         socketRef.current = socket;
 
         socket.on("connect", () => {
+          selfIdRef.current = socket.id || null;
           setSignalState("ready");
           setError(null);
+          setRoomFull(false);
           socket.emit("join", { sessionId, role, name: displayName });
           const stream = localStreamRef.current;
           emitMedia(
@@ -145,9 +271,9 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
         socket.on("disconnect", (reason) => {
           if (reason === "io client disconnect") return;
           setSignalState("reconnecting");
-          setPeerConnected(false);
-          pcRef.current?.close();
-          pcRef.current = null;
+          for (const pc of pcsRef.current.values()) pc.close();
+          pcsRef.current.clear();
+          setPeers([]);
         });
 
         socket.on("connect_error", () => {
@@ -155,74 +281,55 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
           setError("Signaling dropped. Retry to reconnect — the session is still here.");
         });
 
-        socket.on("peer-joined", async (peer: PeerJoined) => {
-          if (peer.role === role) return;
-          setPeerName(peer.name);
-          setPeerStatus("connected");
-          if (localStreamRef.current) {
-            await attachPeer(socket, localStreamRef.current);
-          }
-          emitMedia(
-            !(localStreamRef.current?.getAudioTracks().some((t) => t.enabled) ?? true),
-            localStreamRef.current?.getVideoTracks().some((t) => t.enabled) ?? false,
-          );
+        socket.on("room-full", () => {
+          setRoomFull(true);
+          setError("This session is full (host + 4 guests). Ask for a new invite.");
         });
 
-        socket.on("peer-left", () => {
-          setPeerConnected(false);
-          setPeerName(null);
-          setPeerStatus("disconnected");
-          setRemoteStream(null);
-          setPeerMedia({ muted: false, cameraOn: true });
-          pcRef.current?.close();
-          pcRef.current = null;
+        socket.on("roster", ({ peers: list }: { peers?: PeerJoined[] }) => {
+          if (!list) return;
+          const mine = list.find((p) => p.id === socket.id);
+          if (typeof mine?.slot === "number") setMySlot(mine.slot);
+          for (const p of list) {
+            if (p.id === socket.id) continue;
+            if (localStreamRef.current) attachPeer(socket, localStreamRef.current, p);
+            upsertPeer({
+              id: p.id,
+              role: p.role,
+              name: p.name,
+              slot: typeof p.slot === "number" ? p.slot : 1,
+            });
+          }
+          const live = new Set(list.map((p) => p.id));
+          for (const id of [...pcsRef.current.keys()]) {
+            if (!live.has(id)) dropPeer(id);
+          }
+        });
+
+        socket.on("peer-joined", (peer: PeerJoined) => {
+          if (peer.id === socket.id) return;
+          if (localStreamRef.current) attachPeer(socket, localStreamRef.current, peer);
+        });
+
+        socket.on("peer-left", ({ id }: { id?: string }) => {
+          if (id) dropPeer(id);
         });
 
         socket.on("chrome", (payload: Partial<StudioChrome>) => {
           setRemoteChrome(payload);
         });
 
-        socket.on("media", ({ state }: { state?: PeerMediaState }) => {
-          if (!state) return;
-          setPeerMedia({
+        socket.on("media", ({ from, state }: { from?: string; state?: PeerMediaState }) => {
+          if (!from || !state) return;
+          upsertPeer({
+            id: from,
             muted: Boolean(state.muted),
             cameraOn: state.cameraOn !== false,
           });
         });
 
-        socket.on("signal", async ({ data }: { data: Record<string, unknown> }) => {
-          const pc = pcRef.current;
-          if (!pc) {
-            if (localStreamRef.current && socketRef.current) {
-              await attachPeer(socket, localStreamRef.current);
-            }
-          }
-          const conn = pcRef.current;
-          if (!conn) return;
-
-          if (data.type === "offer" && role === "guest") {
-            await conn.setRemoteDescription(data.sdp as RTCSessionDescriptionInit);
-            const answer = await conn.createAnswer();
-            await conn.setLocalDescription(answer);
-            socket.emit("signal", { sessionId, data: { type: "answer", sdp: conn.localDescription } });
-            for (const c of pendingIce.current) {
-              await conn.addIceCandidate(c);
-            }
-            pendingIce.current = [];
-          } else if (data.type === "answer" && role === "host") {
-            await conn.setRemoteDescription(data.sdp as RTCSessionDescriptionInit);
-            for (const c of pendingIce.current) {
-              await conn.addIceCandidate(c);
-            }
-            pendingIce.current = [];
-          } else if (data.type === "ice" && data.candidate) {
-            const cand = data.candidate as RTCIceCandidateInit;
-            if (conn.remoteDescription) {
-              await conn.addIceCandidate(cand);
-            } else {
-              pendingIce.current.push(cand);
-            }
-          }
+        socket.on("signal", (payload: SignalMessage) => {
+          void handleSignal(socket, payload);
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not start session");
@@ -235,14 +342,15 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
     return () => {
       cancelled = true;
       socketRef.current?.disconnect();
-      pcRef.current?.close();
+      for (const pc of pcsRef.current.values()) pc.close();
+      pcsRef.current.clear();
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- join once per session identity
-  }, [attachPeer, displayName, role, sessionId]);
+  }, [displayName, role, sessionId]);
 
   const sendChrome = useCallback(
-    (patch: Partial<StudioChrome>) => {
+    (patch: StudioChromePatch) => {
       socketRef.current?.emit("chrome", { sessionId, patch });
     },
     [sessionId],
@@ -256,6 +364,7 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
   const retrySignal = useCallback(() => {
     setError(null);
     setSignalState("connecting");
+    setRoomFull(false);
     socketRef.current?.connect();
   }, []);
 
@@ -284,9 +393,17 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
     emitMedia(micMuted, next);
   }, [cameraOn, emitMedia, hasCamera, micMuted, retryMedia]);
 
+  const guestPeers = peers.filter((p) => p.slot !== mySlot);
+  const anyPeerConnected = guestPeers.some((p) => Boolean(p.stream) || p.name);
+  const peerStatus: PeerStatus = anyPeerConnected
+    ? "connected"
+    : peers.length === 0
+      ? "waiting"
+      : "disconnected";
+
   return {
     localStream,
-    remoteStream,
+    peers: guestPeers,
     usingPlaceholder,
     hasCamera,
     hasMic,
@@ -296,12 +413,11 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
     toggleMic,
     toggleCamera,
     retryMedia,
-    peerName,
-    peerConnected,
+    mySlot,
     peerStatus,
-    peerMedia,
     signalState,
     error,
+    roomFull,
     retrySignal,
     remoteChrome,
     sendChrome,

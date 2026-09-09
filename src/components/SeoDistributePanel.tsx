@@ -85,9 +85,33 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
   return (
     <section className="seo-distribute">
       <p className="lede">
-        Generate listing copy, tick the directory checklist, then hand a file + metadata to YouTube
-        Studio. No OAuth in this pass.
+        Listing copy for the <strong>existing</strong> World Pickleball Podcast. Publish audio to
+        Alitu — Spotify and Apple follow that RSS. Do not create a new show.
       </p>
+
+      <div className="catalogue-banner">
+        <p className="eyebrow">Existing catalogue</p>
+        <h2>{brand.showName}</h2>
+        <p>
+          Spotify <code>{brand.sources.spotifyShowId}</code> · Apple{" "}
+          <code>{brand.sources.appleId}</code> · RSS host {brand.distribute.rssHost}
+        </p>
+        <p className="hint">{brand.distribute.continuity}</p>
+        <p className="outlet-row">
+          <a href={brand.sources.spotify} target="_blank" rel="noreferrer">
+            Spotify
+          </a>
+          <a href={brand.sources.apple} target="_blank" rel="noreferrer">
+            Apple Podcasts
+          </a>
+          <a href={brand.sources.alitu} target="_blank" rel="noreferrer">
+            Alitu hub
+          </a>
+          <a href={brand.sources.magazine} target="_blank" rel="noreferrer">
+            WPM
+          </a>
+        </p>
+      </div>
 
       <fieldset className="fx">
         <legend>Notes / transcript</legend>
@@ -131,12 +155,12 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
       </fieldset>
 
       <fieldset className="fx">
-        <legend>Podcast platforms — ready to submit</legend>
+        <legend>Syndication checklist — existing show</legend>
         <p className={`note ${ready ? "" : ""}`}>
-          {ready ? "Ready to submit — every item ticked." : `${doneCount} / ${DISTRIBUTE_ITEMS.length} done`}
+          {ready ? "Ready — every outlet ticked." : `${doneCount} / ${DISTRIBUTE_ITEMS.length} done`}
         </p>
         <label>
-          RSS URL (stub)
+          Canonical RSS (Alitu — existing catalogue)
           <span className="invite-row">
             <input
               value={rssUrl}
@@ -152,6 +176,28 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
             </button>
           </span>
         </label>
+        <p className="hint">
+          Default is the live Alitu feed. Only change this if the host moves — then 301 the old URL
+          and import episodes. Never paste this into a “create new podcast” form.
+        </p>
+        <ul className="outlet-cards">
+          <li>
+            <strong>Spotify + Apple</strong>
+            <span>Via the existing Alitu RSS. Directories already attached to this show.</span>
+          </li>
+          <li>
+            <strong>YouTube long + Shorts</strong>
+            <span>16:9 handoff below; 9:16 from the Clips tab. Video is the gap RSS cannot fill.</span>
+          </li>
+          <li>
+            <strong>IG / TikTok / LinkedIn / X</strong>
+            <span>Vertical clips + captions on the Clips tab. Auto-post is connect-later.</span>
+          </li>
+          <li>
+            <strong>WPM site / newsletter</strong>
+            <span>Link the live episode when the cut is up. Stub, not a CMS publish.</span>
+          </li>
+        </ul>
         <ul className="checklist">
           {DISTRIBUTE_ITEMS.map((item) => (
             <li key={item.id}>
@@ -244,14 +290,15 @@ export function SeoDistributePanel({ episode, artworkSrc, audio, onSave, onNextC
         </div>
         <p className="hint">
           Renders a branded 16:9 WebM (audio + slate, first 12s), or a labeled PNG slate if the
-          browser cannot encode video. Export WAV from Clean / edit for the full master.
+          browser cannot encode video. Export WAV from Clean / edit for the full master. Spotify
+          video is later / optional and does not block this episode.
         </p>
       </fieldset>
       {note ? <p className="note">{note}</p> : null}
       {onNextClips ? (
         <div className="actions tight">
-          <button className="btn" type="button" onClick={onNextClips}>
-            Next: Clips
+          <button className="btn primary" type="button" onClick={onNextClips}>
+            Clips — export verticals
           </button>
         </div>
       ) : null}

@@ -2,14 +2,9 @@ import { brand } from "@brand";
 
 export const SOCIAL_PLATFORMS = [
   {
-    id: "x",
-    label: "X",
-    hint: "Opens a compose intent with the caption. You pick the account in the browser.",
-  },
-  {
-    id: "linkedin",
-    label: "LinkedIn",
-    hint: "Opens a share dialog for the show URL. Paste the caption after you attach the clip.",
+    id: "youtube-shorts",
+    label: "YouTube Shorts",
+    hint: "Upload the 9:16 file in YouTube Studio as a Short. Same show, different surface.",
   },
   {
     id: "instagram",
@@ -21,15 +16,26 @@ export const SOCIAL_PLATFORMS = [
     label: "TikTok",
     hint: "Copy caption + save the vertical file, then upload in TikTok.",
   },
+  {
+    id: "linkedin",
+    label: "LinkedIn",
+    hint: "Opens a share dialog for the show URL. Paste the caption after you attach the clip.",
+  },
+  {
+    id: "x",
+    label: "X",
+    hint: "Opens a compose intent with the caption. You pick the account in the browser.",
+  },
 ] as const;
 
 export type SocialPlatformId = (typeof SOCIAL_PLATFORMS)[number]["id"];
 
 export const DEFAULT_SOCIAL_PLATFORMS: Record<SocialPlatformId, boolean> = {
-  x: true,
-  linkedin: true,
+  "youtube-shorts": true,
   instagram: true,
   tiktok: true,
+  linkedin: true,
+  x: true,
 };
 
 export function captionForPlatform(base: string, platform: SocialPlatformId): string {
@@ -50,6 +56,7 @@ export function shareUrl(platform: SocialPlatformId, caption: string, pageUrl: s
   if (platform === "linkedin") return `${brand.social.linkedinShare}?url=${url}`;
   if (platform === "instagram") return brand.social.instagram;
   if (platform === "tiktok") return brand.social.tiktokUpload;
+  if (platform === "youtube-shorts") return brand.distribute.youtubeShorts;
   return null;
 }
 

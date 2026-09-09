@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "NODE_ENV=production PORT=3010 tsx server.ts",
     "typecheck": "tsc --noEmit",
-    "generate:demo": "node scripts/generate-demo-audio.mjs"
+    "generate:demo": "node scripts/generate-demo-audio.mjs",
+    "generate:backdrops": "node scripts/generate-backdrops.mjs"
   },
   "dependencies": {
     "next": "^15.5.2",

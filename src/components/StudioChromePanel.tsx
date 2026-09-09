@@ -89,9 +89,8 @@ export function StudioChromePanel({ role, mySlot, chrome, presentCount, onPatch 
       <fieldset className="chrome-block">
         <legend>Set wallpaper</legend>
         <p className="hint">
-          Wallpaper behind the tiles (layouts 1–5). Laptop (16:9) and phone (9:16) crop the same
-          master. This does not replace anyone’s real room — use <strong>Camera background</strong>{" "}
-          above for the Zoom-style cutout.
+          Branded graphic behind the tiles (navy/gold WPS). Laptop (16:9) and phone (9:16) crop the
+          same SVG. This is not Camera background — Pick look never changes this wallpaper.
         </p>
         <p className="picker-label">{role === "host" ? "Your backdrop" : "Your backdrop"}</p>
         <SetThumbs

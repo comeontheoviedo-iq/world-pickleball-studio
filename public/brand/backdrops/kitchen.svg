@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1920" viewBox="0 0 1920 1920" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Court geometry — architectural kitchen">
+  <defs>
+    
+    <linearGradient id="kt-cyc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0A0147"/>
+      <stop offset="50%" stop-color="#13016F"/>
+      <stop offset="100%" stop-color="#050024"/>
+    </linearGradient>
+    <linearGradient id="kt-floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#090046" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#020010"/>
+    </linearGradient>
+  </defs>
+  
+    <rect width="1920" height="1920" fill="url(#kt-cyc)"/>
+    <rect y="1180" width="1920" height="740" fill="url(#kt-floor)"/>
+    <g opacity="0.32" fill="none" stroke="#FFF500" stroke-width="2.5">
+      <path d="M120 1920 L520 1100 H1400 L1800 1920"/>
+      <path d="M520 1100 V1920"/>
+      <path d="M1400 1100 V1920"/>
+      <path d="M960 1100 V1920"/>
+      <path d="M520 1380 H1400"/>
+      <rect x="780" y="1220" width="360" height="200" rx="6"/>
+    </g>
+    <g opacity="0.18" fill="none" stroke="#046BD2" stroke-width="2">
+      <ellipse cx="960" cy="820" rx="460" ry="220"/>
+      <ellipse cx="960" cy="820" rx="300" ry="140"/>
+    </g>
+    
+  <g transform="translate(160 1700) scale(1)" opacity="0.4">
+    
+  <g fill="none" stroke="#FFF500" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" opacity="0.88">
+    <path d="M0 72 V36 Q0 0 22 0 Q44 0 44 36 V72"/>
+    <path d="M44 72 V36 Q44 0 66 0 Q88 0 88 36 V-28"/>
+    <path d="M88 -28 Q122 -28 122 8 Q122 44 88 44"/>
+  </g>
+
+    <text x="148" y="28" fill="#F7F4EA" font-family="Arial Black, Helvetica, sans-serif" font-size="28" letter-spacing="6">WORLD PICKLEBALL</text>
+    <text x="148" y="58" fill="#FFF500" font-family="Arial, Helvetica, sans-serif" font-size="14" letter-spacing="10">MAGAZINE  ·  PODCAST</text>
+  </g>
+</svg>

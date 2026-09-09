@@ -7,7 +7,7 @@ Alitu-class branded podcast studio — **Phase 2.1**. Host and up to four remote
 ```bash
 npm install
 npm run generate:demo        # writes public/demo/kitchen-rally.wav (already committed)
-npm run generate:backdrops   # checks public/brand/backdrops/*.jpg (already committed)
+npm run generate:backdrops   # writes branded SVG wallpapers; checks camera-look JPGs
 npm run dev
 ```
 
@@ -50,7 +50,7 @@ Set **wallpaper** (Phase 2) is unchanged: it still sits behind the tiles. Camera
 Shipped on top of the slice 1 pipeline:
 
 1. **Brand kit `wpp-v2`** — navy/indigo + neon yellow. Set lockup is still **one square show-art logo** + “THE WORLD PICKLEBALL / PODCAST”. No landscape WPM mark on the set. UI never labels a placeholder kit.
-2. **Backdrop pack** — 18 photoreal office/studio stills under `/public/brand/backdrops/*.jpg` (16:9, `object-fit: cover` for laptop and phone). Same art is camera VB fills **and** set wallpaper. Default is **Founder loft**. Per-seat wallpaper + **Apply wallpaper to all**.
+2. **Backdrop pack** — 18 branded SVG stage wallpapers under `/public/brand/backdrops/` plus 18 photoreal **camera looks** under `/public/brand/camera-looks/`. Wallpaper and camera VB do not share state. Default stage is **Founder loft** SVG. Per-seat wallpaper + **Apply wallpaper to all**.
 3. **Layouts 1–5** — solo, 1+1, 1+2, 4-up, 5-up. **Auto-reflow** as guests join/leave (host + 4 guests max). Pin a layout to keep empty seats.
 4. **Clips UX** — after Stop you still clean the take; the default next step is **Export verticals** (tab order + WAV export jumps to Clips).
 5. **Distribution Path A** — WPS records/exports only. Keep **Alitu as RSS host** for the existing Spotify/Apple catalogue. **Never create a new show.** Per-episode checklist: (1) export audio → publish to Alitu, (2) YouTube long, (3) YouTube Shorts, (4) IG/TikTok/LinkedIn/X, (5) WPM site/newsletter stub, (6) Spotify video later/optional and does not block.
@@ -78,8 +78,8 @@ Deep links: `/episode/<id>?tab=edit` | `?tab=clips` | `?tab=seo`.
 
 - **Camera background:** Off / Blur / Pick look. Pick a studio — your real room should disappear on your tile (badge **Cam studio**) and on the guest’s view of you. If it cannot run, a yellow/red toast appears and the raw camera stays.
 - Guest: tick **Allow host to set my camera background**, then host **Apply to all (opted-in)**.
-- **Set wallpaper:** still under **Set wallpaper**. Click a thumb (your monitor). **Apply wallpaper to all** syncs every seat’s *tile backdrop*, not their camera.
-- Resize the window under ~720px: stage becomes **9:16** and the same JPG cover-crops for phone (wallpaper and camera fills).
+- **Set wallpaper:** branded SVG graphics under **Set wallpaper**. Click a thumb (your monitor). **Apply wallpaper to all** syncs every seat’s *tile backdrop*, not their camera.
+- Resize the window under ~720px: stage becomes **9:16** and the SVG cover-crops for phone. Camera fills are separate 16:9 JPGs.
 - **Layouts 1–5**: Auto is default. Join extra `/join/<id>` tabs to watch reflow, or pin 4-up / 5-up to preview empty seats.
 
 ## Merge checklist
@@ -88,7 +88,7 @@ Deep links: `/episode/<id>?tab=edit` | `?tab=clips` | `?tab=seo`.
 - [ ] `npm run dev` serves **http://localhost:3010**.
 - [ ] Dry run above reaches Clips + existing-catalogue checklist.
 - [ ] Set lockup is **one square logo** + wordmark (no landscape WPM on the set).
-- [ ] Eighteen founder-studio looks selectable as wallpaper and as camera fills; Apply wallpaper to all works; phone crop readable.
+- [ ] Branded SVG wallpapers + photoreal camera looks are separate; Pick look does not change the stage; Apply wallpaper to all works.
 - [ ] Camera background Off / Blur / Pick on host; guest opt-in + host Apply to all (opted-in).
 - [ ] Unsupported / slow path toasts and keeps the raw camera.
 - [ ] Solo → 5-up auto-reflow with extra join tabs.
@@ -117,7 +117,8 @@ Kit version `wpp-v2` in `brand.config.ts` plus `/public/brand`. Product name **W
 | `/public/brand/show-artwork.jpg` | Public podcast cover (square lockup) |
 | `/public/brand/logo-wp.svg` | wp monogram from that cover |
 | `/public/brand/logo-wpm.png` | Magazine wordmark (kit file; **not** duplicated on the set lockup) |
-| `/public/brand/backdrops/*.jpg` | 18 photoreal office/studio looks (set wallpaper + camera VB fills) |
+| `/public/brand/backdrops/*.svg` | 18 branded stage wallpapers (Set wallpaper only) |
+| `/public/brand/camera-looks/*.jpg` | 18 photoreal camera VB fills (Pick look only) |
 | `/public/brand/sponsors/*.svg` | Sponsor bar slots |
 | Lower-thirds | Chris Beaumont (host) / guests fill as they join |
 
@@ -138,8 +139,8 @@ Listings (existing show only): [Apple](https://podcasts.apple.com/podcast/id1807
 
 Producer dock (host) and guest monitor share room state:
 
-- **Camera background** — Off / Blur / Pick look; replacement camera stream; host Apply to all for opted-in guests; graceful fallback.
-- **Set wallpaper** — 18 looks; both start on Founder loft; Apply wallpaper to all.
+- **Camera background** — Off / Blur / Pick look (photoreal JPGs on the camera tile only); host Apply to all for opted-in guests.
+- **Set wallpaper** — branded SVG graphics behind tiles; default Founder loft; Apply wallpaper to all. Never driven by camera VB.
 - **Layouts** — auto or pin solo / 1+1 / 1+2 / 4-up / 5-up.
 - **Name cards** — host can edit every seat.
 - **Live ticker** — host toggles, pastes items, sets seconds per item.

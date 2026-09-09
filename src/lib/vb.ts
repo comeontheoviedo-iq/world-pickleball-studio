@@ -16,7 +16,7 @@ export type PeerVbState = VbWireState & {
   slot: number;
 };
 
-export const DEFAULT_VB_SET_ID: string = brand.sets[0].id;
+export const DEFAULT_VB_SET_ID: string = brand.cameraLooks[0].id;
 
 export function defaultVbWire(): VbWireState {
   return {
@@ -33,7 +33,9 @@ export function parseVbMode(value: unknown): VbMode {
 }
 
 export function parseVbSetId(value: unknown): string {
-  return typeof value === "string" && brand.sets.some((s) => s.id === value) ? value : DEFAULT_VB_SET_ID;
+  return typeof value === "string" && brand.cameraLooks.some((s) => s.id === value)
+    ? value
+    : DEFAULT_VB_SET_ID;
 }
 
 export function parseVbWire(raw: unknown): VbWireState | null {
@@ -49,7 +51,7 @@ export function parseVbWire(raw: unknown): VbWireState | null {
 }
 
 export function studioSrc(setId: string): string {
-  return brand.sets.find((s) => s.id === setId)?.src ?? brand.sets[0].src;
+  return brand.cameraLooks.find((s) => s.id === setId)?.src ?? brand.cameraLooks[0].src;
 }
 
 export const VB_FALLBACK_UNSUPPORTED =

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1920" viewBox="0 0 1920 1920" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Glass court — frosted panels">
+  <defs>
+    
+    <linearGradient id="fr-cyc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16086A"/>
+      <stop offset="100%" stop-color="#07002E"/>
+    </linearGradient>
+    <linearGradient id="fr-pane" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F7F4EA" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#046BD2" stop-opacity="0.08"/>
+    </linearGradient>
+  </defs>
+  
+    <rect width="1920" height="1920" fill="url(#fr-cyc)"/>
+    <rect x="140" y="180" width="720" height="980" rx="32" fill="url(#fr-pane)" stroke="#FFF500" stroke-opacity="0.22" stroke-width="1.5"/>
+    <rect x="920" y="280" width="860" height="720" rx="32" fill="url(#fr-pane)" stroke="#046BD2" stroke-opacity="0.35" stroke-width="1.5"/>
+    <rect x="420" y="1080" width="1080" height="520" rx="32" fill="url(#fr-pane)" stroke="#FFF500" stroke-opacity="0.16" stroke-width="1.5"/>
+    <circle cx="960" cy="860" r="180" fill="none" stroke="#FFF500" stroke-opacity="0.2" stroke-width="2"/>
+    
+  <g transform="translate(160 1690) scale(1)" opacity="0.42">
+    
+  <g fill="none" stroke="#FFF500" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" opacity="0.88">
+    <path d="M0 72 V36 Q0 0 22 0 Q44 0 44 36 V72"/>
+    <path d="M44 72 V36 Q44 0 66 0 Q88 0 88 36 V-28"/>
+    <path d="M88 -28 Q122 -28 122 8 Q122 44 88 44"/>
+  </g>
+
+    <text x="148" y="28" fill="#F7F4EA" font-family="Arial Black, Helvetica, sans-serif" font-size="28" letter-spacing="6">WORLD PICKLEBALL</text>
+    <text x="148" y="58" fill="#FFF500" font-family="Arial, Helvetica, sans-serif" font-size="14" letter-spacing="10">MAGAZINE  ·  PODCAST</text>
+  </g>
+</svg>

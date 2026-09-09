@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1920" viewBox="0 0 1920 1920" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Amber desk — warm key, navy cyc">
+  <defs>
+    
+    <linearGradient id="am-cyc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0A0147"/>
+      <stop offset="48%" stop-color="#13016F"/>
+      <stop offset="100%" stop-color="#2A1800"/>
+    </linearGradient>
+    <radialGradient id="am-key" cx="50%" cy="88%" r="55%">
+      <stop offset="0%" stop-color="#FFF500" stop-opacity="0.42"/>
+      <stop offset="55%" stop-color="#FFF500" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#13016F" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  
+    <rect width="1920" height="1920" fill="url(#am-cyc)"/>
+    <rect width="1920" height="1920" fill="url(#am-key)"/>
+    <rect y="1500" width="1920" height="14" fill="#FFF500" opacity="0.75"/>
+    <rect y="1514" width="1920" height="406" fill="#120800"/>
+    <g fill="none" stroke="#FFF500" stroke-opacity="0.2" stroke-width="2">
+      <rect x="200" y="200" width="1520" height="1180" rx="28"/>
+    </g>
+    
+  <g transform="translate(160 1688) scale(1)" opacity="0.48">
+    
+  <g fill="none" stroke="#FFF500" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" opacity="0.88">
+    <path d="M0 72 V36 Q0 0 22 0 Q44 0 44 36 V72"/>
+    <path d="M44 72 V36 Q44 0 66 0 Q88 0 88 36 V-28"/>
+    <path d="M88 -28 Q122 -28 122 8 Q122 44 88 44"/>
+  </g>
+
+    <text x="148" y="28" fill="#F7F4EA" font-family="Arial Black, Helvetica, sans-serif" font-size="28" letter-spacing="6">WORLD PICKLEBALL</text>
+    <text x="148" y="58" fill="#FFF500" font-family="Arial, Helvetica, sans-serif" font-size="14" letter-spacing="10">MAGAZINE  ·  PODCAST</text>
+  </g>
+</svg>

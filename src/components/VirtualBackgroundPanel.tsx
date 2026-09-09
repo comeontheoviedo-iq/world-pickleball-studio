@@ -77,7 +77,7 @@ export function VirtualBackgroundPanel({
           onClick={() => onMode("studio", setId)}
         >
           Pick look
-          <small>{brand.sets.length} studios</small>
+          <small>{brand.cameraLooks.length} looks</small>
         </button>
       </div>
       {loading ? (
@@ -105,9 +105,9 @@ export function VirtualBackgroundPanel({
 
       {showGallery ? (
         <div className="vb-gallery">
-          <p className="picker-label">Studio look on your camera — {brand.sets.length} fills</p>
+          <p className="picker-label">Look on your camera only — {brand.cameraLooks.length} fills (not the stage wallpaper)</p>
           <div className="set-picker vb-picker">
-            {brand.sets.map((set) => (
+            {brand.cameraLooks.map((set) => (
               <button
                 key={set.id}
                 type="button"

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1920" viewBox="0 0 1920 1920" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Pulse desk — radar court rings">
+  <defs>
+    
+    <linearGradient id="pu-cyc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0C0258"/>
+      <stop offset="100%" stop-color="#030016"/>
+    </linearGradient>
+  </defs>
+  
+    <rect width="1920" height="1920" fill="url(#pu-cyc)"/>
+    <g fill="none" stroke="#FFF500" stroke-width="1.6" opacity="0.22">
+      <circle cx="960" cy="900" r="220"/>
+      <circle cx="960" cy="900" r="380"/>
+      <circle cx="960" cy="900" r="560"/>
+      <circle cx="960" cy="900" r="740"/>
+      <line x1="960" y1="160" x2="960" y2="1640"/>
+      <line x1="220" y1="900" x2="1700" y2="900"/>
+    </g>
+    <g fill="none" stroke="#046BD2" stroke-width="2" opacity="0.3">
+      <circle cx="960" cy="900" r="120"/>
+    </g>
+    <rect y="1528" width="1920" height="10" fill="#FFF500" opacity="0.65"/>
+    <rect y="1538" width="1920" height="382" fill="#050024"/>
+    
+  <g transform="translate(160 1684) scale(1)" opacity="0.46">
+    
+  <g fill="none" stroke="#FFF500" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" opacity="0.88">
+    <path d="M0 72 V36 Q0 0 22 0 Q44 0 44 36 V72"/>
+    <path d="M44 72 V36 Q44 0 66 0 Q88 0 88 36 V-28"/>
+    <path d="M88 -28 Q122 -28 122 8 Q122 44 88 44"/>
+  </g>
+
+    <text x="148" y="28" fill="#F7F4EA" font-family="Arial Black, Helvetica, sans-serif" font-size="28" letter-spacing="6">WORLD PICKLEBALL</text>
+    <text x="148" y="58" fill="#FFF500" font-family="Arial, Helvetica, sans-serif" font-size="14" letter-spacing="10">MAGAZINE  ·  PODCAST</text>
+  </g>
+</svg>

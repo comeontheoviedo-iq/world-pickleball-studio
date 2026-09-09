@@ -18,21 +18,20 @@ const MODEL_LANDSCAPE =
   "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter_landscape/float16/1/selfie_segmenter_landscape.tflite";
 
 const TARGET_FPS = 30;
-const FRAME_MS = 1000 / TARGET_FPS;
 const SLOW_FRAME_MS = 70;
 const SLOW_STREAK_LIMIT = 24;
 const MIN_AVG_FPS = 16;
 const FPS_SAMPLE = 45;
-/** Alpha-only anti-alias. 0 = crisp matte (2px was the halo). Must stay ≤0.5 if re-enabled. */
+/** No canvas blur on the matte — blur scaled up as a halo. */
 const MASK_FEATHER_PX = 0;
-/** Light temporal mix. 0.35 smeared the silhouette; 0.15 still damps flicker. */
-const MASK_EMA_PREV = 0.15;
-/** Pull mid alpha toward 0/1 after invert, before EMA/feather. */
+/** No temporal mix — even 0.15 trails the speaker and opens a motion gap. */
+const MASK_EMA_PREV = 0;
+/** Pull mid alpha toward 0/1 after invert, before dilate. */
 const MATTE_CONTRAST = 1.75;
 /**
  * MediaPipe Tasks selfie polarity is flipped in practice on Chrome desktop
  * (Chris dry-run: documented person class keyed the room). Invert soft alpha
- * before feather/EMA so destination-in keeps the speaker.
+ * before composite so destination-in keeps the speaker.
  */
 const SELFIE_ALPHA_INVERT = true;
 
@@ -274,6 +273,26 @@ function hardenMatte(prob: Float32Array, count: number): void {
   }
 }
 
+function dilateMax1(src: Float32Array, w: number, h: number, dst: Float32Array): void {
+  for (let y = 0; y < h; y++) {
+    const y0 = y > 0 ? y - 1 : 0;
+    const y1 = y + 1 < h ? y + 1 : h - 1;
+    for (let x = 0; x < w; x++) {
+      const x0 = x > 0 ? x - 1 : 0;
+      const x1 = x + 1 < w ? x + 1 : w - 1;
+      let m = 0;
+      for (let yy = y0; yy <= y1; yy++) {
+        const row = yy * w;
+        for (let xx = x0; xx <= x1; xx++) {
+          const v = src[row + xx];
+          if (v > m) m = v;
+        }
+      }
+      dst[y * w + x] = m;
+    }
+  }
+}
+
 function writeAlphaImage(prob: Float32Array, count: number, out: Uint8ClampedArray): void {
   for (let i = 0; i < count; i++) {
     const a = Math.max(0, Math.min(255, (prob[i] * 255) | 0));
@@ -302,8 +321,8 @@ export class VirtualBackgroundEngine {
   private featherCtx: CanvasRenderingContext2D | null;
   private segmenter: ImageSegmenterLike | null = null;
   private raf = 0;
+  private vfc = 0;
   private lastTs = -1;
-  private lastFrameAt = 0;
   private running = false;
   private mode: Exclude<VbMode, "off"> = "blur";
   private backdrop: HTMLImageElement | null = null;
@@ -312,8 +331,8 @@ export class VirtualBackgroundEngine {
   private frameTimes: number[] = [];
   private loading: Promise<void> | null = null;
   private generation = 0;
-  private prevProb: Float32Array | null = null;
   private workProb: Float32Array | null = null;
+  private dilateProb: Float32Array | null = null;
 
   constructor(private callbacks: VbEngineCallbacks) {
     this.video.playsInline = true;
@@ -391,10 +410,9 @@ export class VirtualBackgroundEngine {
     this.slowStreak = 0;
     this.frameTimes = [];
     this.lastTs = -1;
-    this.lastFrameAt = 0;
-    this.prevProb = null;
     this.workProb = null;
-    this.loop();
+    this.dilateProb = null;
+    this.scheduleNext();
     const stream = this.captured;
     if (!stream) throw new Error(VB_FALLBACK_LOAD);
     return stream;
@@ -410,6 +428,13 @@ export class VirtualBackgroundEngine {
     this.running = false;
     if (this.raf) cancelAnimationFrame(this.raf);
     this.raf = 0;
+    const video = this.video as HTMLVideoElement & {
+      cancelVideoFrameCallback?: (id: number) => void;
+    };
+    if (this.vfc && typeof video.cancelVideoFrameCallback === "function") {
+      video.cancelVideoFrameCallback(this.vfc);
+    }
+    this.vfc = 0;
   }
 
   dispose() {
@@ -421,48 +446,63 @@ export class VirtualBackgroundEngine {
     this.captured = null;
     this.video.srcObject = null;
     this.backdrop = null;
-    this.prevProb = null;
     this.workProb = null;
+    this.dilateProb = null;
   }
 
-  private loop = () => {
+  private scheduleNext() {
     if (!this.running) return;
-    this.raf = requestAnimationFrame(this.loop);
-    if (document.hidden) return;
-
-    const now = performance.now();
-    if (this.lastFrameAt && now - this.lastFrameAt < FRAME_MS - 2) return;
-
-    const started = now;
-    try {
-      this.drawFrame(now);
-    } catch (err) {
-      console.warn("virtual background frame failed", err);
-      this.fail(VB_FALLBACK_LOAD);
+    const video = this.video as HTMLVideoElement & {
+      requestVideoFrameCallback?: (cb: (now: number) => void) => number;
+    };
+    if (typeof video.requestVideoFrameCallback === "function") {
+      this.vfc = video.requestVideoFrameCallback((now) => {
+        this.vfc = 0;
+        this.onVideoFrame(now);
+      });
       return;
     }
+    this.raf = requestAnimationFrame((now) => {
+      this.raf = 0;
+      this.onVideoFrame(now);
+    });
+  }
 
-    const elapsed = performance.now() - started;
-    this.lastFrameAt = performance.now();
-    this.frameTimes.push(elapsed);
-    if (this.frameTimes.length > FPS_SAMPLE) this.frameTimes.shift();
+  private onVideoFrame = (now: number) => {
+    if (!this.running) return;
+    if (!document.hidden) {
+      const started = performance.now();
+      try {
+        this.drawFrame(now);
+      } catch (err) {
+        console.warn("virtual background frame failed", err);
+        this.fail(VB_FALLBACK_LOAD);
+        return;
+      }
 
-    if (elapsed > SLOW_FRAME_MS) this.slowStreak += 1;
-    else this.slowStreak = Math.max(0, this.slowStreak - 1);
+      const elapsed = performance.now() - started;
+      this.frameTimes.push(elapsed);
+      if (this.frameTimes.length > FPS_SAMPLE) this.frameTimes.shift();
 
-    if (this.slowStreak >= SLOW_STREAK_LIMIT) {
-      this.fail(VB_FALLBACK_SLOW);
-      return;
-    }
+      if (elapsed > SLOW_FRAME_MS) this.slowStreak += 1;
+      else this.slowStreak = Math.max(0, this.slowStreak - 1);
 
-    if (this.frameTimes.length === FPS_SAMPLE) {
-      const avg = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
-      const fps = Math.min(TARGET_FPS, Math.round(1000 / Math.max(avg, FRAME_MS)));
-      this.callbacks.onFps?.(fps);
-      if (avg > 1000 / MIN_AVG_FPS) {
+      if (this.slowStreak >= SLOW_STREAK_LIMIT) {
         this.fail(VB_FALLBACK_SLOW);
+        return;
+      }
+
+      if (this.frameTimes.length === FPS_SAMPLE) {
+        const avg = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
+        const fps = Math.min(TARGET_FPS, Math.round(1000 / Math.max(avg, 1)));
+        this.callbacks.onFps?.(fps);
+        if (avg > 1000 / MIN_AVG_FPS) {
+          this.fail(VB_FALLBACK_SLOW);
+          return;
+        }
       }
     }
+    this.scheduleNext();
   };
 
   private drawFrame(now: number) {
@@ -508,8 +548,8 @@ export class VirtualBackgroundEngine {
       this.maskCanvas.height = mh;
       this.featherCanvas.width = mw;
       this.featherCanvas.height = mh;
-      this.prevProb = null;
       this.workProb = null;
+      this.dilateProb = null;
     }
 
     const { values, max } = readMaskValues(mask, kind === "confidence" ? "float32" : "uint8");
@@ -522,19 +562,8 @@ export class VirtualBackgroundEngine {
       for (let i = 0; i < count; i++) cur[i] = 1 - cur[i];
     }
     hardenMatte(this.workProb, count);
-
-    if (!this.prevProb || this.prevProb.length !== count) {
-      this.prevProb = new Float32Array(this.workProb);
-    } else if (MASK_EMA_PREV > 0) {
-      const prev = this.prevProb;
-      const cur = this.workProb;
-      const keep = 1 - MASK_EMA_PREV;
-      for (let i = 0; i < count; i++) {
-        const mixed = cur[i] * keep + prev[i] * MASK_EMA_PREV;
-        cur[i] = mixed;
-        prev[i] = mixed;
-      }
-    }
+    if (!this.dilateProb || this.dilateProb.length !== count) this.dilateProb = new Float32Array(count);
+    dilateMax1(this.workProb, mw, mh, this.dilateProb);
 
     if (category && category !== mask) category.close();
     conf?.forEach((m) => {
@@ -543,7 +572,7 @@ export class VirtualBackgroundEngine {
     mask.close();
 
     const img = maskCtx.createImageData(mw, mh);
-    writeAlphaImage(this.workProb, count, img.data);
+    writeAlphaImage(this.dilateProb, count, img.data);
     maskCtx.putImageData(img, 0, 0);
 
     const fctx = this.featherCtx;

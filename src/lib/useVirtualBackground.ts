@@ -19,6 +19,7 @@ export type VbController = {
   supported: boolean;
   loading: boolean;
   fps: number | null;
+  error: string | null;
   processedStream: MediaStream | null;
   setMode: (mode: VbMode, setId?: string) => void;
   setOptIn: (optIn: boolean) => void;
@@ -40,30 +41,39 @@ export function useVirtualBackground(opts: {
   const [active, setActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fps, setFps] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [processedStream, setProcessedStream] = useState<MediaStream | null>(null);
+  const [blocked, setBlocked] = useState(false);
 
   const engineRef = useRef<VirtualBackgroundEngine | null>(null);
   const modeRef = useRef(mode);
   const setIdRef = useRef(setId);
   const onFallbackRef = useRef(onFallback);
+  const runIdRef = useRef(0);
   modeRef.current = mode;
   setIdRef.current = setId;
   onFallbackRef.current = onFallback;
 
-  const disableToRaw = useCallback((message?: string) => {
+  const stopEngine = useCallback((message?: string, keepMode = true) => {
     engineRef.current?.stop();
     setProcessedStream(null);
     setActive(false);
     setLoading(false);
     setFps(null);
-    setModeState("off");
-    modeRef.current = "off";
-    if (message) onFallbackRef.current(message);
+    if (!keepMode) {
+      setModeState("off");
+      modeRef.current = "off";
+    }
+    if (message) {
+      setError(message);
+      setBlocked(true);
+      onFallbackRef.current(message);
+    }
   }, []);
 
   useEffect(() => {
     const engine = new VirtualBackgroundEngine({
-      onFallback: (message) => disableToRaw(message),
+      onFallback: (message) => stopEngine(message, true),
       onFps: (n) => setFps(n),
     });
     engineRef.current = engine;
@@ -71,9 +81,16 @@ export function useVirtualBackground(opts: {
       engine.dispose();
       engineRef.current = null;
     };
-  }, [disableToRaw]);
+  }, [stopEngine]);
 
-  const wantOn = mode !== "off" && hasCamera && !usingPlaceholder && cameraOn && Boolean(rawStream);
+  const wantOn =
+    mode !== "off" &&
+    hasCamera &&
+    !usingPlaceholder &&
+    cameraOn &&
+    Boolean(rawStream) &&
+    !blocked &&
+    support.ok;
 
   useEffect(() => {
     const engine = engineRef.current;
@@ -84,32 +101,33 @@ export function useVirtualBackground(opts: {
       setLoading(false);
       return;
     }
-    if (!support.ok) {
-      disableToRaw(support.reason || VB_FALLBACK_UNSUPPORTED);
-      return;
-    }
 
     let cancelled = false;
+    const runId = ++runIdRef.current;
     setLoading(true);
+    setError(null);
     void (async () => {
       try {
         const nextMode = modeRef.current === "blur" ? "blur" : "studio";
         const stream = await engine!.start(rawStream!, nextMode, setIdRef.current);
-        if (cancelled) return;
+        if (cancelled || runId !== runIdRef.current) return;
         setProcessedStream(stream);
         setActive(true);
-        setLoading(false);
+        setError(null);
       } catch (err) {
-        if (cancelled) return;
-        const message = err instanceof Error ? err.message : VB_FALLBACK_NO_CAMERA;
-        disableToRaw(message);
+        if (cancelled || runId !== runIdRef.current) return;
+        const raw = err instanceof Error ? err.message : String(err);
+        if (raw === "restarted") return;
+        stopEngine(raw || VB_FALLBACK_UNSUPPORTED, true);
+      } finally {
+        if (!cancelled && runId === runIdRef.current) setLoading(false);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [wantOn, rawStream, support.ok, support.reason, disableToRaw]);
+  }, [wantOn, rawStream, stopEngine]);
 
   useEffect(() => {
     if (!active || mode === "off") return;
@@ -124,13 +142,21 @@ export function useVirtualBackground(opts: {
       const parsed = parseVbMode(next);
       setModeState(parsed);
       modeRef.current = parsed;
-      if (next === "off") return;
-      if (!hasCamera || usingPlaceholder) {
-        onFallbackRef.current(VB_FALLBACK_NO_CAMERA);
+      setBlocked(false);
+      if (parsed === "off") {
+        setError(null);
+        setLoading(false);
         return;
       }
       if (!support.ok) {
-        onFallbackRef.current(support.reason || VB_FALLBACK_UNSUPPORTED);
+        const message = support.reason || VB_FALLBACK_UNSUPPORTED;
+        setError(message);
+        onFallbackRef.current(message);
+        return;
+      }
+      if (!hasCamera || usingPlaceholder) {
+        setError(VB_FALLBACK_NO_CAMERA);
+        onFallbackRef.current(VB_FALLBACK_NO_CAMERA);
       }
     },
     [hasCamera, usingPlaceholder, support.ok, support.reason],
@@ -155,6 +181,7 @@ export function useVirtualBackground(opts: {
     supported: support.ok,
     loading,
     fps,
+    error,
     processedStream,
     setMode,
     setOptIn,

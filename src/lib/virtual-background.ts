@@ -132,37 +132,82 @@ function coverDraw(
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
 }
 
+const LOAD_TIMEOUT_MS = 12000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = window.setTimeout(() => reject(new Error(label)), ms);
+    promise.then(
+      (value) => {
+        window.clearTimeout(t);
+        resolve(value);
+      },
+      (err) => {
+        window.clearTimeout(t);
+        reject(err);
+      },
+    );
+  });
+}
+
 async function importVision(): Promise<VisionModule> {
   try {
     return (await import("@mediapipe/tasks-vision")) as unknown as VisionModule;
-  } catch {
-    const importer = Function(
-      "u",
-      "return import(u)",
-    ) as (u: string) => Promise<VisionModule>;
-    return importer(
-      `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VERSION}/vision_bundle.mjs`,
-    );
+  } catch (err) {
+    try {
+      const importer = Function(
+        "u",
+        "return import(u)",
+      ) as (u: string) => Promise<VisionModule>;
+      return await importer(
+        `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VERSION}/vision_bundle.mjs`,
+      );
+    } catch (cdnErr) {
+      const a = err instanceof Error ? err.message : String(err);
+      const b = cdnErr instanceof Error ? cdnErr.message : String(cdnErr);
+      throw new Error(`MediaPipe failed to load (${a}; CDN: ${b})`);
+    }
   }
 }
 
 async function createSegmenter(landscape: boolean): Promise<ImageSegmenterLike> {
-  const vision = await importVision();
-  const fileset = await vision.FilesetResolver.forVisionTasks(WASM_CDN);
-  const modelAssetPath = landscape ? MODEL_LANDSCAPE : MODEL_SQUARE;
-  const options = {
-    baseOptions: { modelAssetPath, delegate: "GPU" as const },
-    runningMode: "VIDEO" as const,
-    outputCategoryMask: true,
-    outputConfidenceMasks: false,
-  };
   try {
-    return await vision.ImageSegmenter.createFromOptions(fileset, options);
-  } catch {
-    return await vision.ImageSegmenter.createFromOptions(fileset, {
-      ...options,
-      baseOptions: { modelAssetPath, delegate: "CPU" },
-    });
+    const vision = await withTimeout(
+      importVision(),
+      LOAD_TIMEOUT_MS,
+      "MediaPipe script timed out — check network to jsDelivr",
+    );
+    const fileset = await withTimeout(
+      vision.FilesetResolver.forVisionTasks(WASM_CDN),
+      LOAD_TIMEOUT_MS,
+      "MediaPipe WASM timed out",
+    );
+    const modelAssetPath = landscape ? MODEL_LANDSCAPE : MODEL_SQUARE;
+    const options = {
+      baseOptions: { modelAssetPath, delegate: "GPU" as const },
+      runningMode: "VIDEO" as const,
+      outputCategoryMask: true,
+      outputConfidenceMasks: false,
+    };
+    try {
+      return await withTimeout(
+        vision.ImageSegmenter.createFromOptions(fileset, options),
+        LOAD_TIMEOUT_MS,
+        "MediaPipe GPU model timed out",
+      );
+    } catch {
+      return await withTimeout(
+        vision.ImageSegmenter.createFromOptions(fileset, {
+          ...options,
+          baseOptions: { modelAssetPath, delegate: "CPU" },
+        }),
+        LOAD_TIMEOUT_MS,
+        "MediaPipe CPU model timed out",
+      );
+    }
+  } catch (err) {
+    const why = err instanceof Error ? err.message : String(err);
+    throw new Error(`${VB_FALLBACK_LOAD} ${why}`);
   }
 }
 
@@ -266,20 +311,18 @@ export class VirtualBackgroundEngine {
             return;
           }
           this.segmenter = seg;
-        })
-        .catch((err) => {
-          throw err;
         });
       try {
         await this.loading;
-      } catch {
-        throw new Error(VB_FALLBACK_LOAD);
+      } catch (err) {
+        const why = err instanceof Error ? err.message : VB_FALLBACK_LOAD;
+        throw new Error(why);
       } finally {
         this.loading = null;
       }
     }
 
-    if (gen !== this.generation) throw new Error("Camera background restarted");
+    if (gen !== this.generation) throw new Error("restarted");
 
     if (!this.captured) {
       this.captured = this.output.captureStream(TARGET_FPS);

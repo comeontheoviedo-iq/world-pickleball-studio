@@ -293,12 +293,14 @@ function LiveStudio({
       supported={session.vb.supported}
       loading={session.vb.loading}
       fps={session.vb.fps}
+      error={session.vb.error}
       hasCamera={session.hasCamera}
       usingPlaceholder={session.usingPlaceholder}
       peers={session.peerVb}
       onMode={session.vb.setMode}
       onOptIn={session.vb.setOptIn}
       onApplyToAll={session.applyVbToAll}
+      onRetryDevices={() => void session.retryMedia()}
     />
   );
 

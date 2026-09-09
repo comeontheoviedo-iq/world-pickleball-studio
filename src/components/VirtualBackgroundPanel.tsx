@@ -1,7 +1,7 @@
 "use client";
 
 import { brand } from "@brand";
-import type { VbMode } from "@/lib/vb";
+import { VB_FALLBACK_NO_CAMERA, type VbMode } from "@/lib/vb";
 import type { PeerVbState } from "@/lib/vb";
 
 type Props = {
@@ -13,12 +13,14 @@ type Props = {
   supported: boolean;
   loading: boolean;
   fps: number | null;
+  error: string | null;
   hasCamera: boolean;
   usingPlaceholder: boolean;
   peers: PeerVbState[];
   onMode: (mode: VbMode, setId?: string) => void;
   onOptIn: (optIn: boolean) => void;
   onApplyToAll: () => void;
+  onRetryDevices: () => void;
 };
 
 export function VirtualBackgroundPanel({
@@ -30,14 +32,17 @@ export function VirtualBackgroundPanel({
   supported,
   loading,
   fps,
+  error,
   hasCamera,
   usingPlaceholder,
   peers,
   onMode,
   onOptIn,
   onApplyToAll,
+  onRetryDevices,
 }: Props) {
-  const canUse = supported && hasCamera && !usingPlaceholder;
+  const needsCamera = !hasCamera || usingPlaceholder;
+  const showGallery = mode === "studio";
 
   return (
     <fieldset className="chrome-block">
@@ -60,7 +65,6 @@ export function VirtualBackgroundPanel({
           type="button"
           className={mode === "blur" ? "layout-chip on" : "layout-chip"}
           onClick={() => onMode("blur")}
-          disabled={loading}
         >
           Blur
           <small>Frost the room</small>
@@ -68,31 +72,43 @@ export function VirtualBackgroundPanel({
         <button
           type="button"
           className={mode === "studio" ? "layout-chip on" : "layout-chip"}
+          aria-expanded={showGallery}
           onClick={() => onMode("studio", setId)}
-          disabled={loading}
         >
           Pick look
           <small>{brand.sets.length} studios</small>
         </button>
       </div>
-      {loading ? <p className="note">Loading person cutout… first time downloads the on-device model.</p> : null}
+      {loading ? (
+        <p className="note">Loading person cutout… first time downloads the on-device model.</p>
+      ) : null}
       {active && fps ? (
-        <p className="hint">
-          Camera studio live{fps ? ` · ${fps} fps` : ""}. Target 24–30 fps on a mid laptop.
+        <p className="hint">Camera studio live · {fps} fps. Target 24–30 fps on a mid laptop.</p>
+      ) : null}
+      {error || (needsCamera && mode !== "off") ? (
+        <p className="note warn" role="status">
+          {error || VB_FALLBACK_NO_CAMERA}{" "}
+          {needsCamera && mode !== "off" ? (
+            <>
+              Allow camera, then{" "}
+              <button className="btn inline" type="button" onClick={onRetryDevices}>
+                Retry devices
+              </button>
+            </>
+          ) : null}
         </p>
       ) : null}
-      {!canUse ? (
+      {!supported ? (
         <p className="hint">
-          {usingPlaceholder || !hasCamera
-            ? "Needs a real camera. Allow access and Retry devices, then pick Blur or a studio."
-            : "This browser cannot run camera backgrounds. Chrome on a laptop is the primary path; we keep your raw camera."}
+          This browser cannot run camera backgrounds. Chrome on a laptop is the primary path; we
+          keep your raw camera.
         </p>
       ) : null}
 
-      {mode === "studio" ? (
-        <>
-          <p className="picker-label">Studio look on your camera</p>
-          <div className="set-picker">
+      {showGallery ? (
+        <div className="vb-gallery">
+          <p className="picker-label">Studio look on your camera — {brand.sets.length} fills</p>
+          <div className="set-picker vb-picker">
             {brand.sets.map((set) => (
               <button
                 key={set.id}
@@ -106,8 +122,10 @@ export function VirtualBackgroundPanel({
               </button>
             ))}
           </div>
-        </>
-      ) : null}
+        </div>
+      ) : (
+        <p className="hint">Click <strong>Pick look</strong> to open the studio gallery.</p>
+      )}
 
       {role === "guest" ? (
         <label className="check">

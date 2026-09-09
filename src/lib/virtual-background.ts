@@ -187,7 +187,7 @@ async function createSegmenter(landscape: boolean): Promise<ImageSegmenterLike> 
       baseOptions: { modelAssetPath, delegate: "GPU" as const },
       runningMode: "VIDEO" as const,
       outputCategoryMask: true,
-      outputConfidenceMasks: false,
+      outputConfidenceMasks: true,
     };
     try {
       return await withTimeout(
@@ -211,23 +211,53 @@ async function createSegmenter(landscape: boolean): Promise<ImageSegmenterLike> 
   }
 }
 
-function maskAlpha(mask: MaskHandle, out: Uint8ClampedArray): void {
-  const count = mask.width * mask.height;
-  if (mask.getAsFloat32Array) {
-    const f = mask.getAsFloat32Array();
-    for (let i = 0; i < count; i++) {
-      const a = Math.max(0, Math.min(1, f[i] ?? 0));
-      out[i * 4 + 3] = (a * 255) | 0;
-    }
-    return;
-  }
-  const u = mask.getAsUint8Array ? mask.getAsUint8Array() : new Uint8Array(count);
+/**
+ * selfie_segmenter category mask: 0 = background, 1 = person.
+ * Some WASM builds emit the opposite (0 = person) — invert when the frame center
+ * (where the speaker sits) looks like background under the documented polarity.
+ */
+function readMaskValues(
+  mask: MaskHandle,
+  prefer: "uint8" | "float32",
+): { values: ArrayLike<number>; max: number } {
+  const read =
+    prefer === "float32"
+      ? mask.getAsFloat32Array?.() ?? mask.getAsUint8Array?.()
+      : mask.getAsUint8Array?.() ?? mask.getAsFloat32Array?.();
+  const values = read ?? new Uint8Array(mask.width * mask.height);
   let max = 0;
-  for (let i = 0; i < u.length; i++) if (u[i] > max) max = u[i];
-  if (max > 1) {
-    for (let i = 0; i < count; i++) out[i * 4 + 3] = u[i];
-  } else {
-    for (let i = 0; i < count; i++) out[i * 4 + 3] = u[i] ? 255 : 0;
+  for (let i = 0; i < values.length; i++) if (values[i] > max) max = values[i];
+  return { values, max };
+}
+
+function writePersonAlpha(
+  values: ArrayLike<number>,
+  count: number,
+  out: Uint8ClampedArray,
+  kind: "category" | "confidence",
+  invert: boolean,
+  max: number,
+): void {
+  for (let i = 0; i < count; i++) {
+    const v = values[i] ?? 0;
+    let person: number;
+    if (kind === "confidence") {
+      const p = max > 1 ? v / max : v;
+      person = invert ? 1 - p : p;
+    } else if (max > 1) {
+      const hiIsPerson = !invert;
+      person = hiIsPerson ? (v > max / 2 ? 1 : 0) : v <= max / 2 ? 1 : 0;
+    } else {
+      const cat = Math.round(v);
+      const isPerson = invert ? cat === 0 : cat === 1;
+      person = isPerson ? 1 : 0;
+    }
+    const a = Math.max(0, Math.min(255, (person * 255) | 0));
+    const o = i * 4;
+    out[o] = 255;
+    out[o + 1] = 255;
+    out[o + 2] = 255;
+    out[o + 3] = a;
   }
 }
 
@@ -256,6 +286,8 @@ export class VirtualBackgroundEngine {
   private frameTimes: number[] = [];
   private loading: Promise<void> | null = null;
   private generation = 0;
+  /** null until the first mask; then sticky. true = documented polarity is reversed. */
+  private maskInvert: boolean | null = null;
 
   constructor(private callbacks: VbEngineCallbacks) {
     this.video.playsInline = true;
@@ -333,6 +365,7 @@ export class VirtualBackgroundEngine {
     this.frameTimes = [];
     this.lastTs = -1;
     this.lastFrameAt = 0;
+    this.maskInvert = null;
     this.loop();
     const stream = this.captured;
     if (!stream) throw new Error(VB_FALLBACK_LOAD);
@@ -360,6 +393,7 @@ export class VirtualBackgroundEngine {
     this.captured = null;
     this.video.srcObject = null;
     this.backdrop = null;
+    this.maskInvert = null;
   }
 
   private loop = () => {
@@ -418,7 +452,16 @@ export class VirtualBackgroundEngine {
     this.lastTs = ts;
 
     const result = seg.segmentForVideo(video, ts);
-    const mask = result?.confidenceMasks?.[0] || result?.categoryMask;
+    const conf = result?.confidenceMasks;
+    const category = result?.categoryMask;
+    // Clear path: category mask, value === 1 is person (selfie_segmenter). Confidence is fallback.
+    const kind: "category" | "confidence" = category ? "category" : "confidence";
+    const mask =
+      kind === "category"
+        ? category
+        : conf && conf.length > 0
+          ? conf[conf.length > 1 ? conf.length - 1 : 0]
+          : undefined;
     if (!mask) return;
 
     if (this.maskCanvas.width !== mask.width || this.maskCanvas.height !== mask.height) {
@@ -426,13 +469,36 @@ export class VirtualBackgroundEngine {
       this.maskCanvas.height = mask.height;
     }
 
+    const { values, max } = readMaskValues(mask, kind === "confidence" ? "float32" : "uint8");
+    const count = mask.width * mask.height;
+    if (this.maskInvert === null && count > 0) {
+      let min = values[0] ?? 0;
+      for (let i = 1; i < count; i++) {
+        const v = values[i] ?? 0;
+        if (v < min) min = v;
+      }
+      // Wait until the mask has both classes so an empty first frame cannot lock polarity.
+      if (max - min > (max > 1 ? max * 0.15 : 0)) {
+        const cx = (mask.width / 2) | 0;
+        const cy = (mask.height / 2) | 0;
+        const center = values[cy * mask.width + cx] ?? 0;
+        if (kind === "confidence") {
+          const p = max > 1 ? center / max : center;
+          // Last of several masks is person probability; a single mask is often background.
+          this.maskInvert = conf && conf.length === 1 ? p > 0.45 : p < 0.45;
+        } else {
+          // Documented polarity is 1 (or high) = person. Center 0/low ⇒ this WASM build is inverted.
+          this.maskInvert = max > 1 ? center <= max / 2 : Math.round(center) === 0;
+        }
+      }
+    }
     const img = maskCtx.createImageData(mask.width, mask.height);
-    maskAlpha(mask, img.data);
-    mask.close();
-    result?.categoryMask?.close?.();
-    result?.confidenceMasks?.forEach((m) => {
+    writePersonAlpha(values, count, img.data, kind, this.maskInvert === true, max);
+    if (category && category !== mask) category.close();
+    conf?.forEach((m) => {
       if (m !== mask) m.close();
     });
+    mask.close();
     maskCtx.putImageData(img, 0, 0);
 
     if (this.mode === "studio" && this.backdrop) {
@@ -446,13 +512,11 @@ export class VirtualBackgroundEngine {
     }
 
     person.clearRect(0, 0, w, h);
-    person.filter = "none";
     person.globalCompositeOperation = "source-over";
+    person.filter = "none";
     person.drawImage(video, 0, 0, w, h);
-    person.filter = "blur(4px)";
     person.globalCompositeOperation = "destination-in";
     person.drawImage(this.maskCanvas, 0, 0, w, h);
-    person.filter = "none";
     person.globalCompositeOperation = "source-over";
 
     out.drawImage(this.person, 0, 0, w, h);

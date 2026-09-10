@@ -10,9 +10,21 @@ import {
   encodeWav,
   type ProcessFlags,
 } from "@/lib/audio-engine";
-import { createEpisode, getEpisode, loadAudioBlob, upsertEpisode, withRepairedTitle, type Episode } from "@/lib/storage";
+import { createEpisode, getEpisode, getTakeBanner, loadMediaBlob, upsertEpisode, withRepairedTitle, type Episode } from "@/lib/storage";
+import { formatBytes, peekTakeVideo } from "@/lib/session-record";
+import { downloadBlob } from "@/lib/youtube-handoff";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
+function slugFilename(title: string) {
+  return (
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 48) || "episode"
+  );
+}
 
 type WorkspaceTab = "draft" | "edit" | "seo" | "clips";
 
@@ -37,6 +49,8 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
   const [outro, setOutro] = useState(true);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [sessionVideo, setSessionVideo] = useState<Blob | null>(null);
+  const [videoStatus, setVideoStatus] = useState<"loading" | "ready" | "missing">("loading");
 
   useEffect(() => {
     let ep = getEpisode(episodeId);
@@ -53,6 +67,8 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
       ep = withRepairedTitle(ep, brand.demo.title);
     }
     setEpisode(ep ?? null);
+    const banner = getTakeBanner(episodeId);
+    if (banner) setNote(banner);
   }, [episodeId]);
 
   useEffect(() => {
@@ -67,17 +83,37 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
 
   useEffect(() => {
     let cancelled = false;
+    setSessionVideo(null);
+    setVideoStatus("loading");
     async function load() {
       const ep = getEpisode(episodeId);
       let blob: Blob | null = null;
       if (ep?.audioKey) {
-        blob = await loadAudioBlob(ep.audioKey);
+        blob = await loadMediaBlob(ep.audioKey);
+      }
+      const fromMemory = peekTakeVideo(episodeId);
+      if (fromMemory && fromMemory.size > 0) {
+        if (!cancelled) {
+          setSessionVideo(fromMemory);
+          setVideoStatus("ready");
+        }
+      } else if (ep?.videoKey) {
+        const video = await loadMediaBlob(ep.videoKey);
+        if (!cancelled) {
+          setSessionVideo(video);
+          setVideoStatus(video && video.size > 0 ? "ready" : "missing");
+        }
+      } else if (!cancelled) {
+        setSessionVideo(null);
+        setVideoStatus("missing");
       }
       if (blob) {
         if (!cancelled) {
           setSourceLabel(
             ep?.source === "recording"
-              ? "Session take saved from the studio."
+              ? ep.videoKey
+                ? `Session take — mixed audio for Clean / WAV (Alitu) plus composited set video for clips. videoKey=${ep.videoKey}${ep.videoBytes ? ` · ${formatBytes(ep.videoBytes)}` : ""}`
+                : `Session take saved from the studio (audio only — no set video).${ep.videoError ? ` ${ep.videoError}` : ""}`
               : "Loaded audio from this browser.",
           );
         }
@@ -163,6 +199,14 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
     }
   }
 
+  function downloadSetVideo() {
+    if (!sessionVideo || !episode) return;
+    downloadBlob(sessionVideo, `${slugFilename(episode.title)}-set.webm`);
+    setNote(
+      "Downloaded the full 16:9 set video (WebM) — archive / YouTube later. WAV still goes to Alitu; Clips cut verticals from this take.",
+    );
+  }
+
   if (!episode) {
     return (
       <div className="page-block">
@@ -239,6 +283,52 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
       ) : tab === "edit" ? (
         <section className="edit-path">
           <p className="note">{sourceLabel}</p>
+          <div
+            className={
+              videoStatus === "ready" && sessionVideo ? "note take-offer" : "note warn take-offer"
+            }
+            role="status"
+          >
+            {videoStatus === "loading" ? (
+              <p>
+                <strong>Set video:</strong> Loading…
+              </p>
+            ) : videoStatus === "ready" && sessionVideo ? (
+              <>
+                <p>
+                  <strong>Set video: Ready</strong> — {formatBytes(sessionVideo.size)}
+                  {episode.videoKey ? ` · ${episode.videoKey}` : ""}. Full 16:9 composited take for
+                  archive / YouTube later. WAV remains for Alitu; Clips still cut verticals from this
+                  file.
+                </p>
+                <div className="actions tight">
+                  <button className="btn primary" type="button" onClick={downloadSetVideo}>
+                    Download set video (WebM)
+                  </button>
+                </div>
+              </>
+            ) : episode.source === "demo" && !episode.videoKey ? (
+              <p>
+                <strong>Set video: Demo take — record a live session.</strong> This draft has no
+                composited WebM. Export cleaned WAV for Alitu; Clips will use the artwork slate.
+              </p>
+            ) : episode.videoKey ? (
+              <p>
+                <strong>Set video: Missing blob.</strong> Metadata has {episode.videoKey}
+                {episode.videoBytes != null ? ` (${formatBytes(episode.videoBytes)})` : ""} but
+                IndexedDB in this browser has no file. Re-record in this browser, then Download on
+                the session dock.
+              </p>
+            ) : (
+              <p>
+                <strong>Set video: Recording was audio-only.</strong>{" "}
+                {episode.videoError ||
+                  "This take has no videoKey — encode failed or an older audio-only episode."}{" "}
+                Export cleaned WAV for Alitu; Clips will use the artwork slate. Re-record to get the
+                full set WebM.
+              </p>
+            )}
+          </div>
           <WaveformEditor
             buffer={buffer}
             startSec={startSec}
@@ -313,8 +403,8 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
             </button>
           </div>
           <p className="hint">
-            After Stop recording you land here. Export the WAV (or skip) then go to Clips — that is
-            the default post-session path.
+            Export cleaned WAV for Alitu (RSS). Set video status is above — Download when Ready.
+            Clips cut 9:16 verticals from the same take when it exists.
           </p>
         </section>
       ) : tab === "seo" ? (
@@ -330,6 +420,7 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
           episode={episode}
           artworkSrc={art}
           audio={buffer}
+          sessionVideo={sessionVideo}
           onSave={(patch) => saveEpisode({ ...episode, ...patch })}
         />
       )}

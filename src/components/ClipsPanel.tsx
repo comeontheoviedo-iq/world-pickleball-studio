@@ -24,10 +24,11 @@ type Props = {
   episode: Episode;
   artworkSrc: string;
   audio: AudioBuffer | null;
+  sessionVideo?: Blob | null;
   onSave: (patch: Partial<Episode>) => void;
 };
 
-export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
+export function ClipsPanel({ episode, artworkSrc, audio, sessionVideo = null, onSave }: Props) {
   const [busy, setBusy] = useState<"detect" | "export" | "batch" | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -93,6 +94,7 @@ export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
       audio,
       startSec: clip.startSec,
       endSec: clip.endSec,
+      sessionVideo,
     });
     downloadBlob(result.blob, result.filename);
     return result;
@@ -106,8 +108,10 @@ export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
       onSave({ socialChecks: { ...checks, export: true } });
       setNote(
         result.kind === "video"
-          ? `Vertical exported — ${result.filename} (9:16). Next: post to YouTube Shorts, IG, TikTok, LinkedIn, or X below.`
-          : `Video encode unavailable here — downloaded a labeled 9:16 slate (${result.filename}). Still post-ready as a still, or drop it on a timeline.`
+          ? sessionVideo
+            ? `Vertical exported — ${result.filename} (9:16 from the session set). Next: post to YouTube Shorts, IG, TikTok, LinkedIn, or X below.`
+            : `Vertical exported — ${result.filename} (9:16 artwork slate). Next: post to YouTube Shorts, IG, TikTok, LinkedIn, or X below.`
+          : `Video encode unavailable here — downloaded a labeled 9:16 slate (${result.filename}). Still post-ready as a still, or drop it on a timeline.`,
       );
     } catch (err) {
       setNote(err instanceof Error ? err.message : "Clip export failed.");
@@ -147,6 +151,9 @@ export function ClipsPanel({ episode, artworkSrc, audio, onSave }: Props) {
         <p>
           Detect 2–5 moments, download 9:16 captioned files, then post to YouTube Shorts, Instagram,
           TikTok, LinkedIn, and X. This is the step after Stop → Clean — do not skip it.
+          {sessionVideo
+            ? " This take includes session video — exports use the faces-on-set window with hook/caption burn-in."
+            : " No session video on this take — exports use the show-artwork slate (record a set take to capture real people)."}
         </p>
       </div>
 

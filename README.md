@@ -1,6 +1,6 @@
 # World Pickleball Studio
 
-Alitu-class branded podcast studio — **Phase 2.1**. Host and up to four remote guests share a co-branded virtual set for **The World Pickleball Podcast**, then Clean / edit → **Clips (export verticals)** → SEO + the **existing** catalogue.
+Alitu-class branded podcast studio — **Phase 3.1**. Host and up to four remote guests share a co-branded virtual set for **The World Pickleball Podcast**, then Clean / edit → **Clips (export verticals from the session set)** → SEO + the **existing** catalogue.
 
 ## Run locally
 
@@ -15,7 +15,20 @@ Open **[http://localhost:3010](http://localhost:3010)** (not 3000).
 
 `npm run dev` starts Next.js and the Socket.io signaling server on **port 3010** (same origin, path `/signal`). Bind is `0.0.0.0` so preview URLs work; override with `PORT` / `HOSTNAME`.
 
-No accounts, API keys, or `.env` required. Drafts live in **localStorage**; recorded takes live in **IndexedDB** in that browser.
+No accounts, API keys, or `.env` required. Drafts live in **localStorage**; recorded takes (audio + session video) live in **IndexedDB** in that browser.
+
+**Audio vs video:** cleaned WAV still goes to **Alitu** (RSS host — Path A, never a new show). Session **WebM** is for Clips now and YouTube handoff later — it is not the podcast feed.
+
+## Phase 3.1 — session set video
+
+Start/Stop recording captures the **composited VirtualSet** (layout tiles + branding chrome) with mixed audio, not just an audio/webm bed.
+
+1. Host hits **Start recording**. Studio mixes guest/host audio (unchanged Clean → WAV path) and, when the browser supports it, `MediaRecorder` `video/webm` of a 16:9 canvas compositor (`captureStream` + mixed audio).
+2. **Stop recording** stores the audio blob and, when encode worked, a session video blob in IndexedDB. Then Clean / edit opens as before.
+3. **Clips** prefer that session video: 9:16 export is a window of the set (real faces) plus existing hook/caption burn-in. No session video → show-artwork slate path (same as before).
+4. If video encode is unsupported (no `captureStream` / `video/webm`), recording stays **audio-only** and a toast explains the fallback — same spirit as clip PNG slates.
+
+Camera background guidance is unchanged: recommend native Zoom/OS looks + Studio **Off**; experimental Blur/Pick stay secondary.
 
 ## Phase 2.1 — camera virtual backgrounds
 
@@ -54,8 +67,8 @@ Shipped on top of the slice 1 pipeline:
 1. **Brand kit `wpp-v2`** — navy/indigo + neon yellow. Set lockup is still **one square show-art logo** + “THE WORLD PICKLEBALL / PODCAST”. No landscape WPM mark on the set. UI never labels a placeholder kit.
 2. **Backdrop pack** — 18 branded SVG stage wallpapers under `/public/brand/backdrops/` plus 18 photoreal **camera looks** under `/public/brand/camera-looks/`. Wallpaper and camera VB do not share state. Default stage is **Founder loft** SVG. Per-seat wallpaper + **Apply wallpaper to all**.
 3. **Layouts 1–5** — solo, 1+1, 1+2, 4-up, 5-up. **Auto-reflow** as guests join/leave (host + 4 guests max). Pin a layout to keep empty seats.
-4. **Clips UX** — after Stop you still clean the take; the default next step is **Export verticals** (tab order + WAV export jumps to Clips).
-5. **Distribution Path A** — WPS records/exports only. Keep **Alitu as RSS host** for the existing Spotify/Apple catalogue. **Never create a new show.** Per-episode checklist: (1) export audio → publish to Alitu, (2) YouTube long, (3) YouTube Shorts, (4) IG/TikTok/LinkedIn/X, (5) WPM site/newsletter stub, (6) Spotify video later/optional and does not block.
+4. **Clips UX** — after Stop you still clean the take; the default next step is **Export verticals** (tab order + WAV export jumps to Clips). Session video (Phase 3.1) is preferred when the take includes it.
+5. **Distribution Path A** — WPS records/exports only. Keep **Alitu as RSS host** for the existing Spotify/Apple catalogue. **Never create a new show.** Per-episode checklist: (1) export audio → publish to Alitu, (2) YouTube long (session video later), (3) YouTube Shorts, (4) IG/TikTok/LinkedIn/X, (5) WPM site/newsletter stub, (6) Spotify video later/optional and does not block.
 
 ## First dry run
 
@@ -65,9 +78,9 @@ Shipped on top of the slice 1 pipeline:
 2. **Copy link**. Open `/join/<id>` in a second tab (or a phone on port 3010).
 3. Guest: name → **Join session**. Host layout reflows from solo → 1+1 (more guests → 1+2 / 4-up / 5-up).
 4. Producer dock: **Download studio looks**, then Camera background **Off**. Set **wallpaper** is separate (behind tiles). Experimental Blur / Pick look is folded under the dock.
-5. **Start recording** → **Stop recording**. Opens **Clean / edit**.
-6. Trim / FX → **Export cleaned WAV** (lands on **Clips**) or **Next: export verticals**.
-7. **Generate clip moments** → **Export all verticals**. Copy captions; tick Shorts / IG / TikTok / LinkedIn / X.
+5. **Start recording** → **Stop recording**. Stays on the set dock with **Download set video (WebM)** when encode worked (do not wait for Clean). Then **Open clean / edit**. If video encode fails, a red **SET VIDEO NOT SAVED** toast names the reason (`[wps:set-video]` in the console).
+6. Trim / FX → **Export cleaned WAV** (Alitu / RSS). Clean always shows **Set video: Ready / audio-only / demo**. Then **Next: export verticals**.
+7. **Generate clip moments** → **Export all verticals** (session video window when the take has one; otherwise artwork slate). Copy captions; tick Shorts / IG / TikTok / LinkedIn / X.
 8. **SEO + distribute** — generate listing copy, publish the WAV to Alitu, tick the existing-catalogue checklist. Optional 16:9 YouTube handoff.
 
 **Without recording**
@@ -94,6 +107,9 @@ Deep links: `/episode/<id>?tab=edit` | `?tab=clips` | `?tab=seo`.
 - [ ] **Download studio looks** zip works; Studio Off is the recommended in-session mode; experimental Blur/Pick stay available.
 - [ ] Unsupported / slow path toasts and keeps the raw camera.
 - [ ] Solo → 5-up auto-reflow with extra join tabs.
+- [ ] Start/Stop recording stores audio for Clean/WAV **and** a session WebM when `video/webm` encode is supported.
+- [ ] Clips 9:16 uses the session video window (faces on set) when present; artwork slate still exports without a take.
+- [ ] Unsupported video encode: audio-only take + toast; clip PNG slate fallback still works.
 - [ ] Copy buttons flash **Copied**.
 
 **Stubbed (not blockers)**
@@ -131,7 +147,7 @@ Listings (existing show only): [Apple](https://podcasts.apple.com/podcast/id1807
 
 **Path A checklist (SEO + distribute tab)**
 
-1. Export cleaned WAV → **Publish to Alitu** (canonical RSS; Spotify + Apple follow the existing feed).
+1. Export cleaned WAV → **Publish to Alitu** (canonical RSS; Spotify + Apple follow the existing feed). Session video is **not** the feed — it is for clips and YouTube later.
 2. **YouTube** full-episode upload handoff (video gap — not RSS).
 3. **YouTube Shorts** / vertical clips from the Clips tab.
 4. Social clips: IG / TikTok / LinkedIn / X.
@@ -160,7 +176,9 @@ src/lib/layouts.ts           solo–5-up + auto-reflow
 src/lib/seo.ts               listing copy + existing-catalogue checklist
 src/lib/youtube-handoff.ts   16:9 WebM/slate + copy/download helpers
 src/lib/clips.ts             moment detect
-src/lib/clip-render.ts       9:16 captioned WebM / slate
+src/lib/clip-render.ts       9:16 from session video (or artwork slate)
+src/lib/session-record.ts    audio MediaRecorder + canvas set video
+src/lib/set-composite.ts     16:9 layout/chrome compositor for the take
 src/lib/social.ts            captions, platform toggles, share intents
 src/lib/virtual-background.ts MediaPipe selfie segmentation + composite
 src/lib/useVirtualBackground.ts  Off / Blur / studio on the local camera

@@ -17,6 +17,9 @@ export type Episode = {
   updatedAt: string;
   status: EpisodeStatus;
   audioKey: string | null;
+  videoKey: string | null;
+  videoBytes: number | null;
+  videoError: string | null;
   source: "recording" | "demo";
   notes: string;
   seoTitle: string;
@@ -39,6 +42,10 @@ function normalizeEpisode(raw: Episode): Episode {
   return {
     ...raw,
     notes: raw.notes ?? "",
+    audioKey: raw.audioKey ?? null,
+    videoKey: raw.videoKey ?? null,
+    videoBytes: typeof raw.videoBytes === "number" ? raw.videoBytes : null,
+    videoError: raw.videoError ?? null,
     seoTitle: raw.seoTitle ?? "",
     seoDescription: raw.seoDescription ?? "",
     youtubeTitle: raw.youtubeTitle ?? "",
@@ -111,6 +118,9 @@ export function createEpisode(partial: Partial<Episode> & Pick<Episode, "id" | "
     updatedAt: now,
     status: "draft",
     audioKey: null,
+    videoKey: null,
+    videoBytes: null,
+    videoError: null,
     source: "demo",
     notes: "",
     seoTitle: "",
@@ -140,7 +150,7 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-export async function saveAudioBlob(key: string, blob: Blob) {
+export async function saveMediaBlob(key: string, blob: Blob) {
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(STORE, "readwrite");
@@ -151,14 +161,42 @@ export async function saveAudioBlob(key: string, blob: Blob) {
   db.close();
 }
 
-export async function loadAudioBlob(key: string): Promise<Blob | null> {
+export async function loadMediaBlob(key: string): Promise<Blob | null> {
   const db = await openDb();
   const blob = await new Promise<Blob | null>((resolve, reject) => {
     const tx = db.transaction(STORE, "readonly");
     const req = tx.objectStore(STORE).get(key);
     req.onsuccess = () => resolve((req.result as Blob | undefined) ?? null);
-    req.onerror = () => reject(req.error);
+    req.onerror = () => reject(tx.error);
   });
   db.close();
   return blob;
+}
+
+export async function saveAudioBlob(key: string, blob: Blob) {
+  return saveMediaBlob(key, blob);
+}
+
+export async function loadAudioBlob(key: string): Promise<Blob | null> {
+  return loadMediaBlob(key);
+}
+
+const TAKE_BANNER = "wps.takeBanner.";
+
+export function setTakeBanner(episodeId: string, message: string) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(TAKE_BANNER + episodeId, message);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getTakeBanner(episodeId: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return sessionStorage.getItem(TAKE_BANNER + episodeId);
+  } catch {
+    return null;
+  }
 }

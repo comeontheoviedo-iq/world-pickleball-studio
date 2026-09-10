@@ -11,8 +11,19 @@ import {
   type ProcessFlags,
 } from "@/lib/audio-engine";
 import { createEpisode, getEpisode, getTakeBanner, loadMediaBlob, upsertEpisode, withRepairedTitle, type Episode } from "@/lib/storage";
+import { downloadBlob } from "@/lib/youtube-handoff";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
+function slugFilename(title: string) {
+  return (
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 48) || "episode"
+  );
+}
 
 type WorkspaceTab = "draft" | "edit" | "seo" | "clips";
 
@@ -38,6 +49,7 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [sessionVideo, setSessionVideo] = useState<Blob | null>(null);
+  const [videoStatus, setVideoStatus] = useState<"loading" | "ready" | "missing">("loading");
 
   useEffect(() => {
     let ep = getEpisode(episodeId);
@@ -70,6 +82,8 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
 
   useEffect(() => {
     let cancelled = false;
+    setSessionVideo(null);
+    setVideoStatus("loading");
     async function load() {
       const ep = getEpisode(episodeId);
       let blob: Blob | null = null;
@@ -78,9 +92,13 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
       }
       if (ep?.videoKey) {
         const video = await loadMediaBlob(ep.videoKey);
-        if (!cancelled) setSessionVideo(video);
+        if (!cancelled) {
+          setSessionVideo(video);
+          setVideoStatus(video && video.size > 0 ? "ready" : "missing");
+        }
       } else if (!cancelled) {
         setSessionVideo(null);
+        setVideoStatus("missing");
       }
       if (blob) {
         if (!cancelled) {
@@ -172,6 +190,14 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
     } finally {
       setBusy(false);
     }
+  }
+
+  function downloadSetVideo() {
+    if (!sessionVideo || !episode) return;
+    downloadBlob(sessionVideo, `${slugFilename(episode.title)}-set.webm`);
+    setNote(
+      "Downloaded the full 16:9 set video (WebM) — archive / YouTube later. WAV still goes to Alitu; Clips cut verticals from this take.",
+    );
   }
 
   if (!episode) {
@@ -316,6 +342,19 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
             <button className="btn primary" onClick={() => void exportWav()} disabled={!buffer || busy}>
               {busy ? "Rendering…" : "Export cleaned WAV"}
             </button>
+            {videoStatus === "ready" && sessionVideo ? (
+              <button className="btn primary" type="button" onClick={downloadSetVideo}>
+                Download set video (WebM)
+              </button>
+            ) : episode.videoKey && videoStatus === "loading" ? (
+              <button className="btn" type="button" disabled>
+                Loading set video…
+              </button>
+            ) : episode.videoKey && videoStatus === "missing" ? (
+              <button className="btn" type="button" disabled title="Set video could not be loaded from this browser">
+                Set video unavailable
+              </button>
+            ) : null}
             <button className="btn primary" type="button" onClick={() => goTab("clips")}>
               Next: export verticals
             </button>
@@ -324,8 +363,9 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
             </button>
           </div>
           <p className="hint">
-            After Stop recording you land here. Export the WAV (or skip) then go to Clips — that is
-            the default post-session path.
+            {sessionVideo
+              ? "Download set video is the full 16:9 episode recording of the composited set — archive / YouTube later. Export cleaned WAV for Alitu (RSS). Clips still cut 9:16 verticals from this take."
+              : "No set video on this take (audio-only or demo). Export cleaned WAV for Alitu; Clips will use the artwork slate."}
           </p>
         </section>
       ) : tab === "seo" ? (

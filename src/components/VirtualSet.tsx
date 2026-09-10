@@ -2,6 +2,7 @@
 
 import { brand } from "@brand";
 import { HOST_SLOT, layoutById, resolveLayout, type LayoutId } from "@/lib/layouts";
+import type { SetRecordFrame } from "@/lib/set-composite";
 import {
   parseTickerItems,
   tickerItemAt,
@@ -9,7 +10,7 @@ import {
   type StudioChrome,
 } from "@/lib/studio-chrome";
 import type { StudioPeer } from "@/lib/useStudioSession";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 
 export type Seat = {
   key: string;
@@ -39,6 +40,10 @@ type Props = {
   localVbActive?: boolean;
 };
 
+export type VirtualSetHandle = {
+  getFrame: () => SetRecordFrame | null;
+};
+
 function SetVideo({
   stream,
   muted,
@@ -47,6 +52,8 @@ function SetVideo({
   cameraOff,
   mutedBadge,
   studioCam,
+  seatKey,
+  registerVideo,
 }: {
   stream: MediaStream | null;
   muted: boolean;
@@ -55,16 +62,31 @@ function SetVideo({
   cameraOff?: boolean;
   mutedBadge?: boolean;
   studioCam?: boolean;
+  seatKey: string;
+  registerVideo: (key: string, el: HTMLVideoElement | null) => void;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     if (ref.current) ref.current.srcObject = stream;
   }, [stream]);
 
+  useEffect(() => {
+    return () => registerVideo(seatKey, null);
+  }, [seatKey, registerVideo]);
+
   return (
     <div className="set-frame">
       {stream ? (
-        <video ref={ref} autoPlay playsInline muted={muted} className={mirror ? "mirror" : ""} />
+        <video
+          ref={(el) => {
+            ref.current = el;
+            registerVideo(seatKey, el);
+          }}
+          autoPlay
+          playsInline
+          muted={muted}
+          className={mirror ? "mirror" : ""}
+        />
       ) : (
         <div className="set-empty">
           <span className="set-empty-mark">+</span>
@@ -181,19 +203,22 @@ export function buildSeats(opts: {
   return { layout, seats };
 }
 
-export function VirtualSet({
-  localStream,
-  peers,
-  role,
-  mySlot,
-  chrome,
-  live,
-  localMuted,
-  localCameraOn,
-  localName,
-  usingPlaceholder = false,
-  localVbActive = false,
-}: Props) {
+export const VirtualSet = forwardRef<VirtualSetHandle, Props>(function VirtualSet(
+  {
+    localStream,
+    peers,
+    role,
+    mySlot,
+    chrome,
+    live,
+    localMuted,
+    localCameraOn,
+    localName,
+    usingPlaceholder = false,
+    localVbActive = false,
+  },
+  ref,
+) {
   // Stage wallpaper is chrome.setBySlot only — camera VB setId never drives this.
   const mySet = viewerSet(chrome, mySlot);
   const ticker = chrome.tickerOn ? parseTickerItems(chrome.tickerText) : [];
@@ -213,6 +238,61 @@ export function VirtualSet({
       }),
     [chrome, localStream, peers, mySlot, localName, localMuted, localCameraOn, usingPlaceholder, role],
   );
+
+  const videosRef = useRef(new Map<string, HTMLVideoElement>());
+  const registerVideo = useCallback((key: string, el: HTMLVideoElement | null) => {
+    if (el) videosRef.current.set(key, el);
+    else videosRef.current.delete(key);
+  }, []);
+
+  const frameBits = useRef({
+    layout,
+    seats,
+    backdropSrc: mySet.src,
+    live,
+    tickerItems: ticker,
+    tickerIntervalMs: chrome.tickerIntervalMs,
+    bumperOn: chrome.bumperOn,
+    bumperCopy: chrome.bumperCopy,
+  });
+  frameBits.current = {
+    layout,
+    seats,
+    backdropSrc: mySet.src,
+    live,
+    tickerItems: ticker,
+    tickerIntervalMs: chrome.tickerIntervalMs,
+    bumperOn: chrome.bumperOn,
+    bumperCopy: chrome.bumperCopy,
+  };
+
+  useImperativeHandle(ref, () => ({
+    getFrame: () => {
+      const snap = frameBits.current;
+      const videos = videosRef.current;
+      return {
+        layout: snap.layout,
+        seats: snap.seats.map((seat) => ({
+          key: seat.key,
+          video: seat.empty ? null : (videos.get(seat.key) ?? null),
+          name: seat.name,
+          title: seat.title,
+          handle: seat.handle,
+          muted: seat.muted,
+          cameraOn: seat.cameraOn,
+          empty: seat.empty,
+          mirror: seat.mirror,
+          emptyLabel: seat.emptyLabel,
+        })),
+        backdropSrc: snap.backdropSrc,
+        logoSrc: brand.logo.src,
+        live: snap.live,
+        ticker: snap.tickerItems.length ? tickerItemAt(snap.tickerItems, snap.tickerIntervalMs) : "",
+        bumperOn: snap.bumperOn,
+        bumperCopy: snap.bumperCopy,
+      };
+    },
+  }));
 
   return (
     <section className="set" aria-label="Co-branded virtual set">
@@ -247,6 +327,8 @@ export function VirtualSet({
                 cameraOff={Boolean(seat.stream) && !seat.cameraOn}
                 studioCam={seat.key === "local" && localVbActive}
                 mutedBadge={Boolean(seat.stream) && seat.muted}
+                seatKey={seat.key}
+                registerVideo={registerVideo}
               />
               <NameCard name={seat.name} subtitle={seat.title} handle={seat.handle} />
             </article>
@@ -275,4 +357,4 @@ export function VirtualSet({
       ) : null}
     </section>
   );
-}
+});

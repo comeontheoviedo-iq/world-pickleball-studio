@@ -52,9 +52,35 @@ function captionChunks(text: string, size = 5): string[] {
   return chunks;
 }
 
+function sourceSize(el: CanvasImageSource): { w: number; h: number } {
+  if (el instanceof HTMLVideoElement) return { w: el.videoWidth, h: el.videoHeight };
+  if (el instanceof HTMLImageElement) return { w: el.naturalWidth, h: el.naturalHeight };
+  if (el instanceof HTMLCanvasElement) return { w: el.width, h: el.height };
+  return { w: 0, h: 0 };
+}
+
+function drawCover(
+  ctx: CanvasRenderingContext2D,
+  img: CanvasImageSource,
+  dx: number,
+  dy: number,
+  dw: number,
+  dh: number,
+) {
+  const { w: srcW, h: srcH } = sourceSize(img);
+  if (!srcW || !srcH) return;
+  const scale = Math.max(dw / srcW, dh / srcH);
+  const sw = Math.min(srcW, dw / scale);
+  const sh = Math.min(srcH, dh / scale);
+  const sx = Math.max(0, (srcW - sw) / 2);
+  const sy = Math.max(0, (srcH - sh) / 2);
+  ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+}
+
 function drawVerticalFrame(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement | null,
+  sessionVideo: HTMLVideoElement | null,
   hook: string,
   captionLine: string,
   t: number,
@@ -84,7 +110,37 @@ function drawVerticalFrame(
   ctx.font = "600 16px Outfit, sans-serif";
   ctx.fillText(brand.showName.toUpperCase(), 48, 90);
 
-  if (img) {
+  const sessionReady =
+    sessionVideo && sessionVideo.readyState >= 2 && sessionVideo.videoWidth > 0;
+  let hy = 220;
+  if (sessionReady && sessionVideo) {
+    const vx = 24;
+    const vy = 108;
+    const vw = w - 48;
+    const vh = Math.round(vw * (9 / 16));
+    ctx.save();
+    if (typeof ctx.roundRect === "function") {
+      ctx.beginPath();
+      ctx.roundRect(vx, vy, vw, vh, 22);
+      ctx.clip();
+    } else {
+      ctx.beginPath();
+      ctx.rect(vx, vy, vw, vh);
+      ctx.clip();
+    }
+    drawCover(ctx, sessionVideo, vx, vy, vw, vh);
+    ctx.restore();
+    ctx.strokeStyle = "rgba(255,245,0,0.55)";
+    ctx.lineWidth = 4;
+    if (typeof ctx.roundRect === "function") {
+      ctx.beginPath();
+      ctx.roundRect(vx, vy, vw, vh, 22);
+      ctx.stroke();
+    } else {
+      ctx.strokeRect(vx, vy, vw, vh);
+    }
+    hy = vy + vh + 58;
+  } else if (img) {
     const size = 280;
     const x = (w - size) / 2;
     const y = 130;
@@ -107,12 +163,12 @@ function drawVerticalFrame(
       ctx.roundRect(x, y, size, size, 28);
       ctx.stroke();
     }
+    hy = 470;
   }
 
   ctx.fillStyle = brand.colors.lime;
   ctx.font = "400 54px Anton, sans-serif";
-  const hookLines = wrapWords(ctx, hook, w - 96).slice(0, 4);
-  let hy = img ? 470 : 220;
+  const hookLines = wrapWords(ctx, hook, w - 96).slice(0, sessionReady ? 3 : 4);
   for (const line of hookLines) {
     ctx.fillText(line, 48, hy);
     hy += 62;
@@ -154,6 +210,7 @@ export async function renderVerticalClip(opts: {
   audio: AudioBuffer | null;
   startSec: number;
   endSec: number;
+  sessionVideo?: Blob | null;
 }): Promise<ClipRenderResult> {
   const canvas = document.createElement("canvas");
   canvas.width = 720;
@@ -168,6 +225,17 @@ export async function renderVerticalClip(opts: {
     img = null;
   }
 
+  let sessionEl: HTMLVideoElement | null = null;
+  let sessionUrl: string | null = null;
+  if (opts.sessionVideo && opts.sessionVideo.size > 0) {
+    try {
+      sessionEl = await loadSessionVideo(opts.sessionVideo, opts.startSec);
+      sessionUrl = sessionEl.src;
+    } catch {
+      sessionEl = null;
+    }
+  }
+
   const rawDur = Math.max(1.5, (opts.endSec || 0) - (opts.startSec || 0));
   const duration = Math.min(rawDur, CLIP_EXPORT_CAP_SEC);
   const phrases = captionChunks(opts.hook || opts.caption.split("\n")[0] || "World pickleball", 4);
@@ -175,7 +243,16 @@ export async function renderVerticalClip(opts: {
 
   const drawAt = (t: number) => {
     const idx = Math.min(phrases.length - 1, Math.floor((t / duration) * phrases.length));
-    drawVerticalFrame(ctx, img, opts.hook, phrases[idx] || opts.hook, t * 3);
+    drawVerticalFrame(ctx, img, sessionEl, opts.hook, phrases[idx] || opts.hook, t * 3);
+  };
+
+  const cleanupSession = () => {
+    if (sessionEl) {
+      sessionEl.pause();
+      sessionEl.removeAttribute("src");
+      sessionEl.load();
+    }
+    if (sessionUrl) URL.revokeObjectURL(sessionUrl);
   };
 
   if (!mime || typeof MediaRecorder === "undefined" || !("captureStream" in canvas)) {
@@ -183,6 +260,7 @@ export async function renderVerticalClip(opts: {
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Slate export failed"))), "image/png");
     });
+    cleanupSession();
     return { blob, filename: `${slug(opts.hook)}-clip-slate.png`, kind: "slate" };
   }
 
@@ -190,6 +268,10 @@ export async function renderVerticalClip(opts: {
   if (opts.audio) {
     const end = Math.min(opts.audio.duration, opts.startSec + duration);
     slice = sliceBuffer(opts.audio, opts.startSec, end);
+  }
+
+  if (sessionEl) {
+    await playSessionWindow(sessionEl, opts.startSec);
   }
 
   const canvasStream = canvas.captureStream(15);
@@ -216,7 +298,15 @@ export async function renderVerticalClip(opts: {
   const started = performance.now();
   let raf = 0;
   const tick = () => {
-    drawAt((performance.now() - started) / 1000);
+    const t = (performance.now() - started) / 1000;
+    if (sessionEl && sessionEl.paused) {
+      try {
+        sessionEl.currentTime = opts.startSec + t;
+      } catch {
+        /* ignore seek errors */
+      }
+    }
+    drawAt(t);
     raf = requestAnimationFrame(tick);
   };
   tick();
@@ -237,7 +327,53 @@ export async function renderVerticalClip(opts: {
     const slate = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Slate export failed"))), "image/png");
     });
+    cleanupSession();
     return { blob: slate, filename: `${slug(opts.hook)}-clip-slate.png`, kind: "slate" };
   }
+  cleanupSession();
   return { blob, filename: `${slug(opts.hook)}-clip.webm`, kind: "video" };
+}
+
+async function loadSessionVideo(blob: Blob, startSec: number): Promise<HTMLVideoElement> {
+  const url = URL.createObjectURL(blob);
+  const video = document.createElement("video");
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "auto";
+  video.src = url;
+  await new Promise<void>((resolve, reject) => {
+    const onReady = () => {
+      video.removeEventListener("loadeddata", onReady);
+      video.removeEventListener("error", onErr);
+      resolve();
+    };
+    const onErr = () => {
+      video.removeEventListener("loadeddata", onReady);
+      video.removeEventListener("error", onErr);
+      URL.revokeObjectURL(url);
+      reject(new Error("Could not load session video"));
+    };
+    video.addEventListener("loadeddata", onReady);
+    video.addEventListener("error", onErr);
+  });
+  const dur = Number.isFinite(video.duration) ? video.duration : startSec;
+  video.currentTime = Math.max(0, Math.min(startSec, Math.max(0, dur - 0.05)));
+  await new Promise<void>((resolve) => {
+    const done = () => {
+      video.removeEventListener("seeked", done);
+      resolve();
+    };
+    video.addEventListener("seeked", done);
+    window.setTimeout(done, 400);
+  });
+  return video;
+}
+
+async function playSessionWindow(video: HTMLVideoElement, startSec: number) {
+  try {
+    video.currentTime = startSec;
+    await video.play();
+  } catch {
+    /* keep paused; renderer seeks per frame */
+  }
 }

@@ -59,20 +59,22 @@ export function HomeDashboard() {
       </header>
 
       <section className="pipeline">
-        <h2>Phase 2.1 pipeline</h2>
+        <h2>Phase 3.1 pipeline</h2>
         <ol>
           <li>
-            <strong>Record on the set.</strong> Up to five people (solo → 5-up auto-reflow), invite
-            link, WPP lockup. Download studio looks for Zoom/OS virtual background, then join on
-            Camera background <strong>Off</strong>. Set wallpaper stays behind the tiles.
+            <strong>Record on the set.</strong> Start/Stop captures mixed audio <em>and</em> the
+            composited VirtualSet (tiles + branding) as WebM when the browser can encode video.
+            Up to five people, invite link, WPP lockup. Download studio looks for Zoom/OS, then
+            join on Camera background <strong>Off</strong>. Set wallpaper stays behind the tiles.
           </li>
           <li>
             <strong>Clean the take.</strong> Noise reduction, voice enhance, breath ducking, waveform
-            trim, intro/outro stings.
+            trim, intro/outro stings. Export cleaned WAV for Alitu (RSS host — never a new show).
           </li>
           <li>
-            <strong>Export verticals.</strong> Default after Stop / clean-edit — detect moments,
-            download 9:16 clips, post Shorts / IG / TikTok / LinkedIn / X.
+            <strong>Export verticals.</strong> Prefer the session video window (faces on set) with
+            hook/caption burn-in; artwork slate remains the fallback. Post Shorts / IG / TikTok /
+            LinkedIn / X. Session video is also the later YouTube handoff source.
           </li>
           <li>
             <strong>SEO + existing catalogue.</strong> Publish audio to Alitu. Spotify + Apple follow
@@ -89,7 +91,13 @@ export function HomeDashboard() {
               <Link href={`/episode/${ep.id}`}>
                 <span className="pill">{ep.status}</span>
                 <strong>{ep.title}</strong>
-                <em>{ep.source === "demo" ? "Demo audio" : "Session take"}</em>
+                <em>
+                  {ep.source === "demo"
+                    ? "Demo audio"
+                    : ep.videoKey
+                      ? "Set video + audio"
+                      : "Session audio"}
+                </em>
               </Link>
             </li>
           ))}

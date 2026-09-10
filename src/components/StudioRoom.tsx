@@ -1,12 +1,12 @@
 "use client";
 
 import { brand } from "@brand";
-import { VirtualSet } from "@/components/VirtualSet";
+import { VirtualSet, type VirtualSetHandle } from "@/components/VirtualSet";
 import { StudioChromePanel } from "@/components/StudioChromePanel";
 import { VirtualBackgroundPanel } from "@/components/VirtualBackgroundPanel";
-import { mixMediaStreams } from "@/lib/audio-engine";
 import { HOST_SLOT } from "@/lib/layouts";
-import { createEpisode, saveAudioBlob, upsertEpisode } from "@/lib/storage";
+import { startSessionRecording, type SessionRecorder } from "@/lib/session-record";
+import { createEpisode, saveMediaBlob, setTakeBanner, upsertEpisode } from "@/lib/storage";
 import {
   defaultChrome,
   mergeChrome,
@@ -114,8 +114,9 @@ function LiveStudio({
   const [savedEpisodeId, setSavedEpisodeId] = useState<string | null>(null);
   const [recError, setRecError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const setRef = useRef<VirtualSetHandle>(null);
+  const sessionRecRef = useRef<SessionRecorder | null>(null);
+  const [recordingVideo, setRecordingVideo] = useState(false);
 
   const inviteUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -184,57 +185,67 @@ function LiveStudio({
       setRecError("No audio yet — allow mic or wait for the stand-in bed, then Start recording again.");
       return;
     }
-    const mixed = mixMediaStreams(streams);
-    const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-      ? "audio/webm;codecs=opus"
-      : MediaRecorder.isTypeSupported("audio/webm")
-        ? "audio/webm"
-        : "";
     try {
-      const rec = mime ? new MediaRecorder(mixed, { mimeType: mime }) : new MediaRecorder(mixed);
-      chunksRef.current = [];
-      rec.ondataavailable = (ev) => {
-        if (ev.data.size > 0) chunksRef.current.push(ev.data);
-      };
-      rec.start(250);
-      recorderRef.current = rec;
+      const rec = startSessionRecording({
+        audioStreams: streams,
+        getFrame: () => setRef.current?.getFrame() ?? null,
+      });
+      sessionRecRef.current = rec;
+      setRecordingVideo(!rec.videoUnsupported);
       setRecording(true);
+      if (rec.videoUnsupported) {
+        setRecError(
+          "This browser cannot encode set video — recording audio only. Clips will use the artwork slate (same fallback as a PNG clip export).",
+        );
+      }
     } catch (err) {
       setRecError(err instanceof Error ? err.message : "Recorder unavailable in this browser.");
     }
   }
 
   async function finalizeTake(): Promise<string | null> {
-    const rec = recorderRef.current;
-    if (rec && rec.state !== "inactive") {
-      await new Promise<void>((resolve) => {
-        rec.onstop = () => resolve();
-        rec.stop();
-      });
-    }
-    recorderRef.current = null;
+    const rec = sessionRecRef.current;
+    sessionRecRef.current = null;
+    const take = rec ? await rec.stop() : { audioBlob: null, videoBlob: null, videoUnsupported: true, videoNote: null };
     setRecording(false);
-
-    const blob =
-      chunksRef.current.length > 0
-        ? new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || "audio/webm" })
-        : null;
+    setRecordingVideo(false);
 
     const episodeId = crypto.randomUUID();
+    const audioKey = take.audioBlob ? `ep-${episodeId}` : null;
+    const videoKey = take.videoBlob ? `ep-${episodeId}-video` : null;
     const episode = createEpisode({
       id: episodeId,
       title: brand.episodeDefaults.title,
       description: brand.episodeDefaults.description,
       sessionId,
-      source: blob ? "recording" : "demo",
-      audioKey: blob ? `ep-${episodeId}` : null,
+      source: take.audioBlob ? "recording" : "demo",
+      audioKey,
+      videoKey,
       rssUrl: brand.distribute.rssStub,
     });
 
-    if (blob && episode.audioKey) {
-      await saveAudioBlob(episode.audioKey, blob);
-    } else {
-      upsertEpisode({ ...episode, source: "demo" });
+    try {
+      if (take.audioBlob && audioKey) {
+        await saveMediaBlob(audioKey, take.audioBlob);
+      }
+      if (take.videoBlob && videoKey) {
+        try {
+          await saveMediaBlob(videoKey, take.videoBlob);
+        } catch {
+          upsertEpisode({ ...episode, videoKey: null });
+          setTakeBanner(
+            episode.id,
+            "Set video was too large to keep in this browser — audio is saved for Clean / WAV. Clips will use the artwork slate.",
+          );
+        }
+      } else if (take.audioBlob && take.videoNote) {
+        setTakeBanner(episode.id, take.videoNote);
+      }
+      if (!take.audioBlob) {
+        upsertEpisode({ ...episode, source: "demo", audioKey: null, videoKey: null });
+      }
+    } catch (err) {
+      throw err instanceof Error ? err : new Error("Could not save the take.");
     }
 
     setSavedEpisodeId(episode.id);
@@ -259,7 +270,7 @@ function LiveStudio({
       router.push("/");
       return;
     }
-    if (recording || chunksRef.current.length > 0) {
+    if (recording || sessionRecRef.current) {
       setSaving(true);
       try {
         const id = await finalizeTake();
@@ -307,6 +318,7 @@ function LiveStudio({
   return (
     <div className="studio">
       <VirtualSet
+        ref={setRef}
         localStream={session.localStream}
         peers={session.peers}
         role={role}
@@ -332,7 +344,13 @@ function LiveStudio({
         <div className="session-status">
           <p>
             <strong>{recording ? "LIVE" : "Idle"}</strong>
-            <span>{recording ? "Recording this take" : "Set is on standby"}</span>
+            <span>
+              {recording
+                ? recordingVideo
+                  ? "Recording composited set + mixed audio"
+                  : "Recording audio only (set video unavailable)"
+                : "Set is on standby"}
+            </span>
           </p>
           <p>
             <strong>On set</strong>
@@ -417,8 +435,9 @@ function LiveStudio({
               </p>
             ) : (
               <p className="hint">
-                Stop recording saves the take and opens Clean / edit. After the WAV, the default
-                next step is <strong>Clips → export verticals</strong>.
+                Stop recording saves mixed audio (Clean → WAV for Alitu) plus the composited set
+                as WebM when this browser can encode video. Next: <strong>Clips → export verticals</strong>{" "}
+                from faces on set.
               </p>
             )}
 

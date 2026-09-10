@@ -10,7 +10,7 @@ import {
   encodeWav,
   type ProcessFlags,
 } from "@/lib/audio-engine";
-import { createEpisode, getEpisode, loadAudioBlob, upsertEpisode, withRepairedTitle, type Episode } from "@/lib/storage";
+import { createEpisode, getEpisode, getTakeBanner, loadMediaBlob, upsertEpisode, withRepairedTitle, type Episode } from "@/lib/storage";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -37,6 +37,7 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
   const [outro, setOutro] = useState(true);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [sessionVideo, setSessionVideo] = useState<Blob | null>(null);
 
   useEffect(() => {
     let ep = getEpisode(episodeId);
@@ -53,6 +54,8 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
       ep = withRepairedTitle(ep, brand.demo.title);
     }
     setEpisode(ep ?? null);
+    const banner = getTakeBanner(episodeId);
+    if (banner) setNote(banner);
   }, [episodeId]);
 
   useEffect(() => {
@@ -71,13 +74,21 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
       const ep = getEpisode(episodeId);
       let blob: Blob | null = null;
       if (ep?.audioKey) {
-        blob = await loadAudioBlob(ep.audioKey);
+        blob = await loadMediaBlob(ep.audioKey);
+      }
+      if (ep?.videoKey) {
+        const video = await loadMediaBlob(ep.videoKey);
+        if (!cancelled) setSessionVideo(video);
+      } else if (!cancelled) {
+        setSessionVideo(null);
       }
       if (blob) {
         if (!cancelled) {
           setSourceLabel(
             ep?.source === "recording"
-              ? "Session take saved from the studio."
+              ? ep.videoKey
+                ? "Session take — mixed audio for Clean / WAV (Alitu) plus composited set video for clips."
+                : "Session take saved from the studio (audio only — no set video in this browser)."
               : "Loaded audio from this browser.",
           );
         }
@@ -330,6 +341,7 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
           episode={episode}
           artworkSrc={art}
           audio={buffer}
+          sessionVideo={sessionVideo}
           onSave={(patch) => saveEpisode({ ...episode, ...patch })}
         />
       )}

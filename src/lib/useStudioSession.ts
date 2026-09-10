@@ -4,6 +4,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import { ICE_SERVERS, getStudioStream, type PeerMediaState } from "@/lib/media";
 import type { StudioChrome, StudioChromePatch } from "@/lib/studio-chrome";
+import { useVirtualBackground } from "@/lib/useVirtualBackground";
+import {
+  parseVbMode,
+  parseVbSetId,
+  parseVbWire,
+  type PeerVbState,
+  type VbMode,
+  type VbWireState,
+} from "@/lib/vb";
 
 export type Role = "host" | "guest";
 export type SignalState = "connecting" | "ready" | "reconnecting" | "error";
@@ -29,10 +38,14 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
   const ignoreOfferRef = useRef(new Map<string, boolean>());
   const pendingIceRef = useRef(new Map<string, RTCIceCandidateInit[]>());
   const socketRef = useRef<Socket | null>(null);
+  const rawStreamRef = useRef<MediaStream | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const selfIdRef = useRef<string | null>(null);
 
+  const [rawStream, setRawStream] = useState<MediaStream | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [vbToast, setVbToast] = useState<string | null>(null);
+  const [peerVb, setPeerVb] = useState<PeerVbState[]>([]);
   const [peers, setPeers] = useState<StudioPeer[]>([]);
   const [usingPlaceholder, setUsingPlaceholder] = useState(false);
   const [hasCamera, setHasCamera] = useState(false);
@@ -45,6 +58,32 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
   const [error, setError] = useState<string | null>(null);
   const [roomFull, setRoomFull] = useState(false);
   const [remoteChrome, setRemoteChrome] = useState<Partial<StudioChrome> | null>(null);
+
+  const vb = useVirtualBackground({
+    rawStream,
+    hasCamera,
+    usingPlaceholder,
+    cameraOn,
+    onFallback: (message) => setVbToast(message),
+  });
+  const vbOptInRef = useRef(false);
+  const vbApplyRef = useRef<(mode: VbMode, setId: string) => void>(() => {});
+  const vbStateRef = useRef<VbWireState>({
+    mode: vb.mode,
+    setId: vb.setId,
+    optIn: vb.optIn,
+    active: vb.active,
+    supported: vb.supported,
+  });
+  vbOptInRef.current = vb.optIn;
+  vbApplyRef.current = vb.applyRemote;
+  vbStateRef.current = {
+    mode: vb.mode,
+    setId: vb.setId,
+    optIn: vb.optIn,
+    active: vb.active,
+    supported: vb.supported,
+  };
 
   const emitMedia = useCallback(
     (muted: boolean, camOn: boolean) => {
@@ -82,6 +121,7 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
     ignoreOfferRef.current.delete(id);
     pendingIceRef.current.delete(id);
     setPeers((prev) => prev.filter((p) => p.id !== id));
+    setPeerVb((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
   const attachPeer = useCallback(
@@ -112,8 +152,9 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
         cameraOn: true,
       });
 
-      for (const track of stream.getTracks()) {
-        pc.addTrack(track, stream);
+      const publish = localStreamRef.current || stream;
+      for (const track of publish.getTracks()) {
+        pc.addTrack(track, publish);
       }
 
       pc.onicecandidate = (ev) => {
@@ -214,30 +255,36 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
     [attachPeer, sessionId],
   );
 
+  const publishTracks = useCallback((stream: MediaStream) => {
+    localStreamRef.current = stream;
+    setLocalStream(stream);
+    for (const pc of pcsRef.current.values()) {
+      for (const track of stream.getTracks()) {
+        const sender = pc.getSenders().find((s) => s.track?.kind === track.kind);
+        if (sender) void sender.replaceTrack(track);
+        else pc.addTrack(track, stream);
+      }
+    }
+  }, []);
+
   const applyMediaResult = useCallback(
     async (result: Awaited<ReturnType<typeof getStudioStream>>) => {
-      const prev = localStreamRef.current;
-      localStreamRef.current = result.stream;
-      setLocalStream(result.stream);
+      const prev = rawStreamRef.current;
+      rawStreamRef.current = result.stream;
+      setRawStream(result.stream);
       setUsingPlaceholder(result.usingPlaceholder);
       setHasCamera(result.hasCamera);
       setHasMic(result.hasMic);
       setPermissionNote(result.note);
       setCameraOn(true);
       setMicMuted(!result.hasMic);
-      for (const pc of pcsRef.current.values()) {
-        for (const track of result.stream.getTracks()) {
-          const sender = pc.getSenders().find((s) => s.track?.kind === track.kind);
-          if (sender) await sender.replaceTrack(track);
-          else pc.addTrack(track, result.stream);
-        }
-      }
+      publishTracks(result.stream);
       prev?.getTracks().forEach((t) => {
         if (!result.stream.getTracks().includes(t)) t.stop();
       });
       emitMedia(!result.hasMic, true);
     },
-    [emitMedia],
+    [emitMedia, publishTracks],
   );
 
   useEffect(() => {
@@ -261,6 +308,7 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
           setError(null);
           setRoomFull(false);
           socket.emit("join", { sessionId, role, name: displayName });
+          socket.emit("vb", { sessionId, state: vbStateRef.current });
           const stream = localStreamRef.current;
           emitMedia(
             !(stream?.getAudioTracks().some((t) => t.enabled) ?? false),
@@ -274,6 +322,7 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
           for (const pc of pcsRef.current.values()) pc.close();
           pcsRef.current.clear();
           setPeers([]);
+          setPeerVb([]);
         });
 
         socket.on("connect_error", () => {
@@ -319,6 +368,29 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
           setRemoteChrome(payload);
         });
 
+        socket.on("vb", (payload: { from?: string; slot?: number; state?: unknown }) => {
+          const state = parseVbWire(payload.state);
+          if (!payload.from || !state) return;
+          setPeerVb((prev) => {
+            const next: PeerVbState = {
+              ...state,
+              id: payload.from!,
+              slot: typeof payload.slot === "number" ? payload.slot : 1,
+            };
+            const idx = prev.findIndex((p) => p.id === next.id);
+            if (idx === -1) return [...prev, next];
+            const copy = [...prev];
+            copy[idx] = next;
+            return copy;
+          });
+        });
+
+        socket.on("vb-apply-all", (payload: { mode?: unknown; setId?: unknown }) => {
+          const incoming = parseVbMode(payload.mode);
+          const id = parseVbSetId(payload.setId);
+          if (vbOptInRef.current) vbApplyRef.current(incoming, id);
+        });
+
         socket.on("media", ({ from, state }: { from?: string; state?: PeerMediaState }) => {
           if (!from || !state) return;
           upsertPeer({
@@ -344,10 +416,47 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
       socketRef.current?.disconnect();
       for (const pc of pcsRef.current.values()) pc.close();
       pcsRef.current.clear();
+      rawStreamRef.current?.getTracks().forEach((t) => t.stop());
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- join once per session identity
   }, [displayName, role, sessionId]);
+
+  useEffect(() => {
+    const raw = rawStreamRef.current;
+    if (!raw) return;
+    const processed = vb.processedStream;
+    if (!processed) {
+      publishTracks(raw);
+      return;
+    }
+    const mixed = new MediaStream();
+    const video = processed.getVideoTracks()[0] || raw.getVideoTracks()[0];
+    if (video) mixed.addTrack(video);
+    for (const a of raw.getAudioTracks()) mixed.addTrack(a);
+    publishTracks(mixed);
+  }, [vb.processedStream, rawStream, publishTracks]);
+
+  useEffect(() => {
+    const state: VbWireState = {
+      mode: vb.mode,
+      setId: vb.setId,
+      optIn: vb.optIn,
+      active: vb.active,
+      supported: vb.supported,
+    };
+    socketRef.current?.emit("vb", { sessionId, state });
+  }, [sessionId, vb.mode, vb.setId, vb.optIn, vb.active, vb.supported]);
+
+  useEffect(() => {
+    if (!vbToast) return;
+    const t = window.setTimeout(() => setVbToast(null), 7000);
+    return () => window.clearTimeout(t);
+  }, [vbToast]);
+
+  useEffect(() => {
+    setPeerVb((prev) => prev.filter((p) => peers.some((x) => x.id === p.id)));
+  }, [peers]);
 
   const sendChrome = useCallback(
     (patch: StudioChromePatch) => {
@@ -369,10 +478,13 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
   }, []);
 
   const toggleMic = useCallback(() => {
-    const stream = localStreamRef.current;
+    const stream = rawStreamRef.current || localStreamRef.current;
     if (!stream || !hasMic) return;
     const next = !micMuted;
     stream.getAudioTracks().forEach((t) => {
+      t.enabled = !next;
+    });
+    localStreamRef.current?.getAudioTracks().forEach((t) => {
       t.enabled = !next;
     });
     setMicMuted(next);
@@ -380,18 +492,29 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
   }, [cameraOn, emitMedia, hasMic, micMuted]);
 
   const toggleCamera = useCallback(() => {
-    const stream = localStreamRef.current;
+    const stream = rawStreamRef.current || localStreamRef.current;
     if (!stream || !hasCamera) {
       void retryMedia();
       return;
     }
     const next = !cameraOn;
-    stream.getVideoTracks().forEach((t) => {
+    rawStreamRef.current?.getVideoTracks().forEach((t) => {
+      t.enabled = next;
+    });
+    localStreamRef.current?.getVideoTracks().forEach((t) => {
       t.enabled = next;
     });
     setCameraOn(next);
     emitMedia(micMuted, next);
   }, [cameraOn, emitMedia, hasCamera, micMuted, retryMedia]);
+
+  const applyVbToAll = useCallback(() => {
+    socketRef.current?.emit("vb-apply-all", {
+      sessionId,
+      mode: vb.mode,
+      setId: vb.setId,
+    });
+  }, [sessionId, vb.mode, vb.setId]);
 
   const guestPeers = peers.filter((p) => p.slot !== mySlot);
   const anyPeerConnected = guestPeers.some((p) => Boolean(p.stream) || p.name);
@@ -421,5 +544,10 @@ export function useStudioSession(sessionId: string, role: Role, displayName: str
     retrySignal,
     remoteChrome,
     sendChrome,
+    vb,
+    vbToast,
+    dismissVbToast: () => setVbToast(null),
+    peerVb,
+    applyVbToAll,
   };
 }

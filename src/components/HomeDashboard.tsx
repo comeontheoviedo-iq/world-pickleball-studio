@@ -59,11 +59,12 @@ export function HomeDashboard() {
       </header>
 
       <section className="pipeline">
-        <h2>Phase 2 pipeline</h2>
+        <h2>Phase 2.1 pipeline</h2>
         <ol>
           <li>
             <strong>Record on the set.</strong> Up to five people (solo → 5-up auto-reflow), invite
-            link, WPP lockup, founder-studio backdrops for laptop and phone.
+            link, WPP lockup. Download studio looks for Zoom/OS virtual background, then join on
+            Camera background <strong>Off</strong>. Set wallpaper stays behind the tiles.
           </li>
           <li>
             <strong>Clean the take.</strong> Noise reduction, voice enhance, breath ducking, waveform

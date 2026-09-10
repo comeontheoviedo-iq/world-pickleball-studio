@@ -152,6 +152,20 @@ app.prepare().then(() => {
       io.to(sessionId).emit("chrome", next);
     });
 
+    socket.on("vb", ({ sessionId, state }: { sessionId?: string; state?: unknown }) => {
+      if (!sessionId || !state || typeof state !== "object") return;
+      socket.to(sessionId).emit("vb", {
+        from: socket.id,
+        slot: socket.data?.slot,
+        state,
+      });
+    });
+
+    socket.on("vb-apply-all", ({ sessionId, mode, setId }: { sessionId?: string; mode?: unknown; setId?: unknown }) => {
+      if (!sessionId) return;
+      socket.to(sessionId).emit("vb-apply-all", { from: socket.id, mode, setId });
+    });
+
     socket.on("media", ({ sessionId, state }: MediaPayload) => {
       if (!sessionId || !state || typeof state !== "object") return;
       socket.to(sessionId).emit("media", { from: socket.id, state });

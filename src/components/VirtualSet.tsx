@@ -36,6 +36,7 @@ type Props = {
   localCameraOn: boolean;
   localName: string;
   usingPlaceholder?: boolean;
+  localVbActive?: boolean;
 };
 
 function SetVideo({
@@ -45,6 +46,7 @@ function SetVideo({
   emptyLabel,
   cameraOff,
   mutedBadge,
+  studioCam,
 }: {
   stream: MediaStream | null;
   muted: boolean;
@@ -52,6 +54,7 @@ function SetVideo({
   emptyLabel: string;
   cameraOff?: boolean;
   mutedBadge?: boolean;
+  studioCam?: boolean;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -69,6 +72,7 @@ function SetVideo({
         </div>
       )}
       {cameraOff ? <div className="frame-flag">Camera off</div> : null}
+      {studioCam ? <div className="frame-flag studio-cam">Cam studio</div> : null}
       {mutedBadge ? <div className="frame-muted">Muted</div> : null}
     </div>
   );
@@ -188,7 +192,9 @@ export function VirtualSet({
   localCameraOn,
   localName,
   usingPlaceholder = false,
+  localVbActive = false,
 }: Props) {
+  // Stage wallpaper is chrome.setBySlot only — camera VB setId never drives this.
   const mySet = viewerSet(chrome, mySlot);
   const ticker = chrome.tickerOn ? parseTickerItems(chrome.tickerText) : [];
   const logos = chrome.sponsorUrls.filter(Boolean);
@@ -239,6 +245,7 @@ export function VirtualSet({
                 mirror={seat.mirror}
                 emptyLabel={seat.emptyLabel}
                 cameraOff={Boolean(seat.stream) && !seat.cameraOn}
+                studioCam={seat.key === "local" && localVbActive}
                 mutedBadge={Boolean(seat.stream) && seat.muted}
               />
               <NameCard name={seat.name} subtitle={seat.title} handle={seat.handle} />

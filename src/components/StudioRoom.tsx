@@ -188,7 +188,11 @@ function LiveStudio({
     try {
       const rec = startSessionRecording({
         audioStreams: streams,
-        getFrame: () => setRef.current?.getFrame() ?? null,
+        getFrame: () => {
+          const frame = setRef.current?.getFrame() ?? null;
+          if (!frame) return null;
+          return { ...frame, live: true };
+        },
       });
       sessionRecRef.current = rec;
       setRecordingVideo(!rec.videoUnsupported);

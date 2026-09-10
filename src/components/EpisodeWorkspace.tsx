@@ -11,6 +11,7 @@ import {
   type ProcessFlags,
 } from "@/lib/audio-engine";
 import { createEpisode, getEpisode, getTakeBanner, loadMediaBlob, upsertEpisode, withRepairedTitle, type Episode } from "@/lib/storage";
+import { formatBytes, peekTakeVideo } from "@/lib/session-record";
 import { downloadBlob } from "@/lib/youtube-handoff";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -90,7 +91,13 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
       if (ep?.audioKey) {
         blob = await loadMediaBlob(ep.audioKey);
       }
-      if (ep?.videoKey) {
+      const fromMemory = peekTakeVideo(episodeId);
+      if (fromMemory && fromMemory.size > 0) {
+        if (!cancelled) {
+          setSessionVideo(fromMemory);
+          setVideoStatus("ready");
+        }
+      } else if (ep?.videoKey) {
         const video = await loadMediaBlob(ep.videoKey);
         if (!cancelled) {
           setSessionVideo(video);
@@ -105,8 +112,8 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
           setSourceLabel(
             ep?.source === "recording"
               ? ep.videoKey
-                ? "Session take — mixed audio for Clean / WAV (Alitu) plus composited set video for clips."
-                : "Session take saved from the studio (audio only — no set video in this browser)."
+                ? `Session take — mixed audio for Clean / WAV (Alitu) plus composited set video for clips. videoKey=${ep.videoKey}${ep.videoBytes ? ` · ${formatBytes(ep.videoBytes)}` : ""}`
+                : `Session take saved from the studio (audio only — no set video).${ep.videoError ? ` ${ep.videoError}` : ""}`
               : "Loaded audio from this browser.",
           );
         }
@@ -276,6 +283,52 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
       ) : tab === "edit" ? (
         <section className="edit-path">
           <p className="note">{sourceLabel}</p>
+          <div
+            className={
+              videoStatus === "ready" && sessionVideo ? "note take-offer" : "note warn take-offer"
+            }
+            role="status"
+          >
+            {videoStatus === "loading" ? (
+              <p>
+                <strong>Set video:</strong> Loading…
+              </p>
+            ) : videoStatus === "ready" && sessionVideo ? (
+              <>
+                <p>
+                  <strong>Set video: Ready</strong> — {formatBytes(sessionVideo.size)}
+                  {episode.videoKey ? ` · ${episode.videoKey}` : ""}. Full 16:9 composited take for
+                  archive / YouTube later. WAV remains for Alitu; Clips still cut verticals from this
+                  file.
+                </p>
+                <div className="actions tight">
+                  <button className="btn primary" type="button" onClick={downloadSetVideo}>
+                    Download set video (WebM)
+                  </button>
+                </div>
+              </>
+            ) : episode.source === "demo" && !episode.videoKey ? (
+              <p>
+                <strong>Set video: Demo take — record a live session.</strong> This draft has no
+                composited WebM. Export cleaned WAV for Alitu; Clips will use the artwork slate.
+              </p>
+            ) : episode.videoKey ? (
+              <p>
+                <strong>Set video: Missing blob.</strong> Metadata has {episode.videoKey}
+                {episode.videoBytes != null ? ` (${formatBytes(episode.videoBytes)})` : ""} but
+                IndexedDB in this browser has no file. Re-record in this browser, then Download on
+                the session dock.
+              </p>
+            ) : (
+              <p>
+                <strong>Set video: Recording was audio-only.</strong>{" "}
+                {episode.videoError ||
+                  "This take has no videoKey — encode failed or an older audio-only episode."}{" "}
+                Export cleaned WAV for Alitu; Clips will use the artwork slate. Re-record to get the
+                full set WebM.
+              </p>
+            )}
+          </div>
           <WaveformEditor
             buffer={buffer}
             startSec={startSec}
@@ -342,19 +395,6 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
             <button className="btn primary" onClick={() => void exportWav()} disabled={!buffer || busy}>
               {busy ? "Rendering…" : "Export cleaned WAV"}
             </button>
-            {videoStatus === "ready" && sessionVideo ? (
-              <button className="btn primary" type="button" onClick={downloadSetVideo}>
-                Download set video (WebM)
-              </button>
-            ) : episode.videoKey && videoStatus === "loading" ? (
-              <button className="btn" type="button" disabled>
-                Loading set video…
-              </button>
-            ) : episode.videoKey && videoStatus === "missing" ? (
-              <button className="btn" type="button" disabled title="Set video could not be loaded from this browser">
-                Set video unavailable
-              </button>
-            ) : null}
             <button className="btn primary" type="button" onClick={() => goTab("clips")}>
               Next: export verticals
             </button>
@@ -363,9 +403,8 @@ export function EpisodeWorkspace({ episodeId, initialTab = "draft" }: Props) {
             </button>
           </div>
           <p className="hint">
-            {sessionVideo
-              ? "Download set video is the full 16:9 episode recording of the composited set — archive / YouTube later. Export cleaned WAV for Alitu (RSS). Clips still cut 9:16 verticals from this take."
-              : "No set video on this take (audio-only or demo). Export cleaned WAV for Alitu; Clips will use the artwork slate."}
+            Export cleaned WAV for Alitu (RSS). Set video status is above — Download when Ready.
+            Clips cut 9:16 verticals from the same take when it exists.
           </p>
         </section>
       ) : tab === "seo" ? (

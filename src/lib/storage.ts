@@ -18,6 +18,8 @@ export type Episode = {
   status: EpisodeStatus;
   audioKey: string | null;
   videoKey: string | null;
+  videoBytes: number | null;
+  videoError: string | null;
   source: "recording" | "demo";
   notes: string;
   seoTitle: string;
@@ -42,6 +44,8 @@ function normalizeEpisode(raw: Episode): Episode {
     notes: raw.notes ?? "",
     audioKey: raw.audioKey ?? null,
     videoKey: raw.videoKey ?? null,
+    videoBytes: typeof raw.videoBytes === "number" ? raw.videoBytes : null,
+    videoError: raw.videoError ?? null,
     seoTitle: raw.seoTitle ?? "",
     seoDescription: raw.seoDescription ?? "",
     youtubeTitle: raw.youtubeTitle ?? "",
@@ -115,6 +119,8 @@ export function createEpisode(partial: Partial<Episode> & Pick<Episode, "id" | "
     status: "draft",
     audioKey: null,
     videoKey: null,
+    videoBytes: null,
+    videoError: null,
     source: "demo",
     notes: "",
     seoTitle: "",

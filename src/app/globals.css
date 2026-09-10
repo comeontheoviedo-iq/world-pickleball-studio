@@ -688,6 +688,14 @@ label {
   background: rgba(255, 77, 77, 0.12);
 }
 
+.note.take-offer p {
+  margin: 0;
+}
+
+.note.take-offer .actions {
+  margin-top: 0.55rem;
+}
+
 .gate {
   min-height: calc(100vh - 60px);
   display: grid;

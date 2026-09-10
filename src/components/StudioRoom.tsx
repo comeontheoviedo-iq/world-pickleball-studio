@@ -5,7 +5,12 @@ import { VirtualSet, type VirtualSetHandle } from "@/components/VirtualSet";
 import { StudioChromePanel } from "@/components/StudioChromePanel";
 import { VirtualBackgroundPanel } from "@/components/VirtualBackgroundPanel";
 import { HOST_SLOT } from "@/lib/layouts";
-import { startSessionRecording, type SessionRecorder } from "@/lib/session-record";
+import {
+  formatBytes,
+  rememberTakeVideo,
+  startSessionRecording,
+  type SessionRecorder,
+} from "@/lib/session-record";
 import { createEpisode, saveMediaBlob, setTakeBanner, upsertEpisode } from "@/lib/storage";
 import {
   defaultChrome,
@@ -14,7 +19,7 @@ import {
   type StudioChromePatch,
 } from "@/lib/studio-chrome";
 import { useStudioSession } from "@/lib/useStudioSession";
-import { copyText } from "@/lib/youtube-handoff";
+import { copyText, downloadBlob } from "@/lib/youtube-handoff";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -117,6 +122,13 @@ function LiveStudio({
   const setRef = useRef<VirtualSetHandle>(null);
   const sessionRecRef = useRef<SessionRecorder | null>(null);
   const [recordingVideo, setRecordingVideo] = useState(false);
+  const [savedTake, setSavedTake] = useState<{
+    episodeId: string;
+    videoBlob: Blob | null;
+    videoBytes: number;
+    videoNote: string | null;
+    videoReason: string | null;
+  } | null>(null);
 
   const inviteUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -175,9 +187,10 @@ function LiveStudio({
     window.setTimeout(() => setCopied(false), 1800);
   }
 
-  function startRecording() {
+  async function startRecording() {
     setRecError(null);
     setSavedEpisodeId(null);
+    setSavedTake(null);
     const streams = [session.localStream, ...session.peers.map((p) => p.stream)].filter(
       Boolean,
     ) as MediaStream[];
@@ -186,7 +199,8 @@ function LiveStudio({
       return;
     }
     try {
-      const rec = startSessionRecording({
+      setSaving(true);
+      const rec = await startSessionRecording({
         audioStreams: streams,
         getFrame: () => {
           const frame = setRef.current?.getFrame() ?? null;
@@ -198,19 +212,31 @@ function LiveStudio({
       setRecordingVideo(!rec.videoUnsupported);
       setRecording(true);
       if (rec.videoUnsupported) {
+        const why = rec.videoReason ? ` Reason: ${rec.videoReason}.` : "";
         setRecError(
-          "This browser cannot encode set video — recording audio only. Clips will use the artwork slate (same fallback as a PNG clip export).",
+          `SET VIDEO FAILED — recording audio only.${why} Open the browser console for [wps:set-video]. WAV still exports for Alitu; Clips will use the artwork slate.`,
         );
       }
     } catch (err) {
       setRecError(err instanceof Error ? err.message : "Recorder unavailable in this browser.");
+    } finally {
+      setSaving(false);
     }
   }
 
   async function finalizeTake(): Promise<string | null> {
     const rec = sessionRecRef.current;
     sessionRecRef.current = null;
-    const take = rec ? await rec.stop() : { audioBlob: null, videoBlob: null, videoUnsupported: true, videoNote: null };
+    const take = rec
+      ? await rec.stop()
+      : {
+          audioBlob: null,
+          videoBlob: null,
+          videoUnsupported: true,
+          videoNote: "Recorder was not running.",
+          videoBytes: 0,
+          videoReason: "no recorder",
+        };
     setRecording(false);
     setRecordingVideo(false);
 
@@ -225,6 +251,8 @@ function LiveStudio({
       source: take.audioBlob ? "recording" : "demo",
       audioKey,
       videoKey,
+      videoBytes: take.videoBlob ? take.videoBytes : null,
+      videoError: take.videoBlob ? null : take.videoNote,
       rssUrl: brand.distribute.rssStub,
     });
 
@@ -233,26 +261,39 @@ function LiveStudio({
         await saveMediaBlob(audioKey, take.audioBlob);
       }
       if (take.videoBlob && videoKey) {
+        rememberTakeVideo(episodeId, take.videoBlob);
         try {
           await saveMediaBlob(videoKey, take.videoBlob);
-        } catch {
-          upsertEpisode({ ...episode, videoKey: null });
+        } catch (err) {
+          console.warn("[wps:set-video] IndexedDB put failed", err);
+          upsertEpisode({ ...episode, videoKey: null, videoBytes: null, videoError: "IndexedDB refused the video blob (quota?)." });
           setTakeBanner(
             episode.id,
-            "Set video was too large to keep in this browser — audio is saved for Clean / WAV. Clips will use the artwork slate.",
+            "Set video was too large to keep in this browser — audio is saved for Clean / WAV. Download it now from the session dock if the file is still in memory.",
           );
         }
       } else if (take.audioBlob && take.videoNote) {
         setTakeBanner(episode.id, take.videoNote);
       }
       if (!take.audioBlob) {
-        upsertEpisode({ ...episode, source: "demo", audioKey: null, videoKey: null });
+        upsertEpisode({ ...episode, source: "demo", audioKey: null, videoKey: null, videoBytes: null });
       }
     } catch (err) {
       throw err instanceof Error ? err : new Error("Could not save the take.");
     }
 
     setSavedEpisodeId(episode.id);
+    setSavedTake({
+      episodeId: episode.id,
+      videoBlob: take.videoBlob,
+      videoBytes: take.videoBytes,
+      videoNote: take.videoNote,
+      videoReason: take.videoReason,
+    });
+    if (!take.videoBlob) {
+      const why = take.videoReason || take.videoNote || "unknown";
+      setRecError(`SET VIDEO NOT SAVED — this take is audio-only. ${why}`);
+    }
     return episode.id;
   }
 
@@ -260,8 +301,7 @@ function LiveStudio({
     setRecError(null);
     setSaving(true);
     try {
-      const id = await finalizeTake();
-      if (id) router.push(`/episode/${id}?tab=edit`);
+      await finalizeTake();
     } catch (err) {
       setRecError(err instanceof Error ? err.message : "Could not save the take.");
     } finally {
@@ -418,7 +458,7 @@ function LiveStudio({
 
             <div className="actions tight">
               {!recording ? (
-                <button className="btn primary" type="button" onClick={startRecording} disabled={saving}>
+                <button className="btn primary" type="button" onClick={() => void startRecording()} disabled={saving}>
                   Start recording
                 </button>
               ) : (
@@ -430,7 +470,46 @@ function LiveStudio({
                 End session
               </button>
             </div>
-            {savedEpisodeId && !recording ? (
+            {savedTake && !recording ? (
+              <div className={savedTake.videoBlob ? "note take-offer" : "note warn take-offer"} role="status">
+                {savedTake.videoBlob ? (
+                  <>
+                    <p>
+                      <strong>Set video ready</strong> — {formatBytes(savedTake.videoBytes)}. Full 16:9
+                      composited take for archive / YouTube later. WAV still goes to Alitu from Clean / edit.
+                    </p>
+                    <div className="actions tight">
+                      <button
+                        className="btn primary"
+                        type="button"
+                        onClick={() =>
+                          downloadBlob(savedTake.videoBlob!, `wpp-set-${savedTake.episodeId.slice(0, 8)}.webm`)
+                        }
+                      >
+                        Download set video (WebM)
+                      </button>
+                      <a className="btn primary" href={`/episode/${savedTake.episodeId}?tab=edit`}>
+                        Open clean / edit
+                      </a>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p>
+                      <strong>SET VIDEO NOT SAVED</strong> — this take is audio-only.
+                      {savedTake.videoReason ? ` ${savedTake.videoReason}.` : ""}{" "}
+                      {savedTake.videoNote || "Check the console for [wps:set-video]."} Export WAV for Alitu;
+                      Clips will use the artwork slate.
+                    </p>
+                    <div className="actions tight">
+                      <a className="btn primary" href={`/episode/${savedTake.episodeId}?tab=edit`}>
+                        Open clean / edit
+                      </a>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : savedEpisodeId && !recording ? (
               <p className="note">
                 Take saved. Next: clean it, then export vertical clips.{" "}
                 <a className="btn primary inline" href={`/episode/${savedEpisodeId}?tab=edit`}>
@@ -439,9 +518,8 @@ function LiveStudio({
               </p>
             ) : (
               <p className="hint">
-                Stop recording saves mixed audio (Clean → WAV for Alitu) plus the composited set
-                as WebM when this browser can encode video. Next: <strong>Clips → export verticals</strong>{" "}
-                from faces on set.
+                Stop recording stays on this dock with <strong>Download set video</strong> when encode
+                works, then Clean / edit. WAV → Alitu; WebM → archive / YouTube / clips.
               </p>
             )}
 

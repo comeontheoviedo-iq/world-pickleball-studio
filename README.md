@@ -78,8 +78,8 @@ Shipped on top of the slice 1 pipeline:
 2. **Copy link**. Open `/join/<id>` in a second tab (or a phone on port 3010).
 3. Guest: name → **Join session**. Host layout reflows from solo → 1+1 (more guests → 1+2 / 4-up / 5-up).
 4. Producer dock: **Download studio looks**, then Camera background **Off**. Set **wallpaper** is separate (behind tiles). Experimental Blur / Pick look is folded under the dock.
-5. **Start recording** → **Stop recording**. Saves mixed audio **and** composited set video (WebM) when supported, then opens **Clean / edit**. If video encode is unavailable, a toast keeps the audio-only path.
-6. Trim / FX → **Export cleaned WAV** (Alitu / RSS) and **Download set video (WebM)** when the take has one (full 16:9 archive / YouTube later). Then **Next: export verticals**.
+5. **Start recording** → **Stop recording**. Stays on the set dock with **Download set video (WebM)** when encode worked (do not wait for Clean). Then **Open clean / edit**. If video encode fails, a red **SET VIDEO NOT SAVED** toast names the reason (`[wps:set-video]` in the console).
+6. Trim / FX → **Export cleaned WAV** (Alitu / RSS). Clean always shows **Set video: Ready / audio-only / demo**. Then **Next: export verticals**.
 7. **Generate clip moments** → **Export all verticals** (session video window when the take has one; otherwise artwork slate). Copy captions; tick Shorts / IG / TikTok / LinkedIn / X.
 8. **SEO + distribute** — generate listing copy, publish the WAV to Alitu, tick the existing-catalogue checklist. Optional 16:9 YouTube handoff.
 

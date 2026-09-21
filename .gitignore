@@ -10,3 +10,8 @@ dist
 .vercel
 next-env.d.ts
 tsconfig.tsbuildinfo
+
+# local runtime
+dev.pid
+dev.log
+
